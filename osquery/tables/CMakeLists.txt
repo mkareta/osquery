@@ -22,19 +22,20 @@ endif()
 if(APPLE)
   set(TABLE_PLATFORM "darwin")
 
-  ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreFoundation")
-  ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreWLAN")
-  ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreGraphics")
-  ADD_OSQUERY_LINK_ADDITIONAL("-framework Security")
-  ADD_OSQUERY_LINK_ADDITIONAL("-framework OpenDirectory")
-  ADD_OSQUERY_LINK_ADDITIONAL("-framework DiskArbitration")
-  ADD_OSQUERY_LINK_ADDITIONAL("-framework ServiceManagement")
+  target_link_libraries(libosquery_tables "-framework CoreFoundation")
+  target_link_libraries(libosquery_tables "-framework CoreWLAN")
+  target_link_libraries(libosquery_tables "-framework CoreGraphics")
+  target_link_libraries(libosquery_tables "-framework Security")
+  target_link_libraries(libosquery_tables "-framework OpenDirectory")
+  target_link_libraries(libosquery_tables "-framework DiskArbitration")
+  target_link_libraries(libosquery_tables "-framework ServiceManagement")
 
-  ADD_OSQUERY_LINK_ADDITIONAL("libresolv.dylib")
-  ADD_OSQUERY_LINK_ADDITIONAL("libxar.dylib")
-  ADD_OSQUERY_LINK_ADDITIONAL("libcups")
-  ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
-  ADD_OSQUERY_LINK_ADDITIONAL("libbsm")
+
+  osquery_find_and_link_library(libosquery_tables "libresolv.dylib")
+  osquery_find_and_link_library(libosquery_tables "libxar.dylib")
+  osquery_find_and_link_library(libosquery_tables "cups")
+  osquery_find_and_link_library(libosquery_tables "iconv")
+  osquery_find_and_link_library(libosquery_tables "bsm")
 endif()
 
 # FreeBSD specific and applicable tables.
@@ -43,10 +44,10 @@ if(FREEBSD)
 
   include_directories("/usr/local/include/libxml2")
 
-  ADD_OSQUERY_LINK_ADDITIONAL("procstat")
-  ADD_OSQUERY_LINK_ADDITIONAL("util")
-  ADD_OSQUERY_LINK_ADDITIONAL("kvm")
-  ADD_OSQUERY_LINK_ADDITIONAL("elf")
+  osquery_find_and_link_library(libosquery_tables "procstat")
+  osquery_find_and_link_library(libosquery_tables "util")
+  osquery_find_and_link_library(libosquery_tables "kvm")
+  osquery_find_and_link_library(libosquery_tables "elf")
 endif()
 
 # Windows specific and applicable tables.
@@ -54,78 +55,93 @@ if(WINDOWS)
   set(TABLE_PLATFORM "windows")
 
   # Additional Windows libraries
-  ADD_OSQUERY_LINK_ADDITIONAL("crypt32.lib")
-  ADD_OSQUERY_LINK_ADDITIONAL("Wintrust.lib")
-  ADD_OSQUERY_LINK_ADDITIONAL("Advapi32.lib")
-  ADD_OSQUERY_LINK_ADDITIONAL("Iphlpapi.lib")
-  ADD_OSQUERY_LINK_ADDITIONAL("SetupAPI.lib")
-  ADD_OSQUERY_LINK_ADDITIONAL("Ws2_32.lib")
-  ADD_OSQUERY_LINK_ADDITIONAL("version.lib")
+  osquery_find_and_link_library(libosquery_tables "crypt32.lib")
+  osquery_find_and_link_library(libosquery_tables "Wintrust.lib")
+  osquery_find_and_link_library(libosquery_tables "Advapi32.lib")
+  osquery_find_and_link_library(libosquery_tables "Iphlpapi.lib")
+  osquery_find_and_link_library(libosquery_tables "SetupAPI.lib")
+  osquery_find_and_link_library(libosquery_tables "Ws2_32.lib")
+  osquery_find_and_link_library(libosquery_tables "version.lib")
 endif()
 
 # Linux specific and applicable tables.
 if(LINUX)
   set(TABLE_PLATFORM "linux")
 
-  ADD_OSQUERY_LINK_ADDITIONAL("libresolv.so")
-  ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper lvm2app lvm-internal daemonclient")
-  ADD_OSQUERY_LINK_ADDITIONAL("gcrypt gpg-error")
-  ADD_OSQUERY_LINK_ADDITIONAL("blkid")
-  ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
-
-  ADD_OSQUERY_LINK_ADDITIONAL("dpkg lzma bz2")
-  ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio popt db")
+  osquery_find_and_link_library(libosquery_tables "libresolv.so")
+  osquery_find_and_link_library(libosquery_tables "cryptsetup")
+  osquery_find_and_link_library(libosquery_tables "devmapper") 
+  osquery_find_and_link_library(libosquery_tables "lvm2app") 
+  osquery_find_and_link_library(libosquery_tables "lvm-internal")
+  osquery_find_and_link_library(libosquery_tables "daemonclient")
+  osquery_find_and_link_library(libosquery_tables "gcrypt")
+  osquery_find_and_link_library(libosquery_tables "gpg-error")
+  osquery_find_and_link_library(libosquery_tables "blkid")
+  osquery_find_and_link_library(libosquery_tables "ip4tc")
+  osquery_find_and_link_library(libosquery_tables "dpkg")
+  osquery_find_and_link_library(libosquery_tables "lzma")
+  osquery_find_and_link_library(libosquery_tables "bz2")
+  osquery_find_and_link_library(libosquery_tables "rpm")
+  osquery_find_and_link_library(libosquery_tables "rpmio")
+  osquery_find_and_link_library(libosquery_tables "popt")
+  osquery_find_and_link_library(libosquery_tables "db")
 endif()
 
 if(POSIX)
-  ADD_OSQUERY_LINK_ADDITIONAL("augeas fa xml2")
+  osquery_find_and_link_library(libosquery_tables "augeas")
+  osquery_find_and_link_library(libosquery_tables "fa")
+  osquery_find_and_link_library(libosquery_tables "xml2")
 endif()
 
 # For each general category, add the C++ files in the base.
 foreach(CATEGORY ${TABLE_CATEGORIES})
   file(GLOB OSQUERY_${CATEGORY}_TABLES
-    "${CATEGORY}/*.[cpm]*"
-    "${CATEGORY}/${TABLE_PLATFORM}/*.[cpm]*"
+    "${CMAKE_CURRENT_LIST_DIR}/${CATEGORY}/*.[cpm]*"
+    "${CMAKE_CURRENT_LIST_DIR}/${CATEGORY}/${TABLE_PLATFORM}/*.[cpm]*"
   )
   if(OSQUERY_${CATEGORY}_TABLES)
-    ADD_OSQUERY_LIBRARY_ADDITIONAL(
-      osquery_${CATEGORY}_tables
-      ${OSQUERY_${CATEGORY}_TABLES}
+    target_sources(libosquery_tables
+      PRIVATE
+        ${OSQUERY_${CATEGORY}_TABLES}
     )
   endif()
 
   # POSIX tables.
   if(POSIX)
-    file(GLOB OSQUERY_${CATEGORY}_POSIX_TABLES "${CATEGORY}/posix/*.[cpm]*")
+    file(GLOB OSQUERY_${CATEGORY}_POSIX_TABLES 
+      "${CMAKE_CURRENT_LIST_DIR}/${CATEGORY}/posix/*.[cpm]*"
+    )
     if(OSQUERY_${CATEGORY}_POSIX_TABLES)
-      ADD_OSQUERY_LIBRARY_ADDITIONAL(
-        osquery_${CATEGORY}_posix_tables
-        ${OSQUERY_${CATEGORY}_POSIX_TABLES}
+      target_sources(libosquery_tables
+        PRIVATE
+          ${OSQUERY_${CATEGORY}_POSIX_TABLES}
       )
     endif()
 
     # Add posix table tests.
     file(GLOB POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS
-      "${CATEGORY}/posix/tests/*.[cpm]*"
+      "${CMAKE_CURRENT_LIST_DIR}/${CATEGORY}/posix/tests/*.[cpm]*"
     )
     ADD_OSQUERY_TABLE_TEST(${POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS})
   endif()
 
   # Table implementations shared by FreeBSD and Linux
   if(FREEBSD OR LINUX)
-    file(GLOB OSQUERY_${CATEGORY}_FREENUX_TABLES "${CATEGORY}/freenux/*.[cpm]*")
+    file(GLOB OSQUERY_${CATEGORY}_FREENUX_TABLES 
+      "${CMAKE_CURRENT_LIST_DIR}/${CATEGORY}/freenux/*.[cpm]*"
+    )
     if(OSQUERY_${CATEGORY}_FREENUX_TABLES)
-      ADD_OSQUERY_LIBRARY_ADDITIONAL(
-        osquery_${CATEGORY}_freenux_tables
-        ${OSQUERY_${CATEGORY}_FREENUX_TABLES}
+      target_sources(libosquery_tables
+        PRIVATE
+          ${OSQUERY_${CATEGORY}_FREENUX_TABLES}
       )
     endif()
   endif()
 
   # Add the table tests.
   file(GLOB OSQUERY_${CATEGORY}_TABLES_TESTS
-    "${CATEGORY}/tests/*.[cpm]*"
-    "${CATEGORY}/${TABLE_PLATFORM}/tests/*.[cpm]*"
+    "${CMAKE_CURRENT_LIST_DIR}/${CATEGORY}/tests/*.[cpm]*"
+    "${CMAKE_CURRENT_LIST_DIR}/${CATEGORY}/${TABLE_PLATFORM}/tests/*.[cpm]*"
   )
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CATEGORY}_TABLES_TESTS})
 endforeach()
@@ -135,61 +151,74 @@ if(NOT SKIP_KERNEL)
     "kernel/*.[cpm]*"
     "*/${TABLE_PLATFORM}/kernel/*.[cpm]*"
   )
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(
-    osquery_kernel_tables
-    ${OSQUERY_KERNEL_TABLES}
+  target_sources(libosquery_tables
+    PRIVATE
+      ${OSQUERY_KERNEL_TABLES}
   )
 endif()
 
-file(GLOB OSQUERY_UTILITY_TABLES "utility/*.cpp")
-ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
-  ${OSQUERY_UTILITY_TABLES}
+file(GLOB OSQUERY_UTILITY_TABLES "${CMAKE_CURRENT_LIST_DIR}/utility/*.cpp")
+target_sources(libosquery_tables
+  PRIVATE
+    ${OSQUERY_UTILITY_TABLES}
 )
 
 if(NOT SKIP_AWS AND LINUX)
-  file(GLOB OSQUERY_CLOUD_TABLES "cloud/*.[cpm]*")
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_cloud_tables ${OSQUERY_CLOUD_TABLES})
-
-  file(GLOB OSQUERY_CLOUD_TABLES_TESTS "cloud/tests/*.[cpm]*")
+  file(GLOB OSQUERY_CLOUD_TABLES "${CMAKE_CURRENT_LIST_DIR}/cloud/*.[cpm]*")
+  target_sources(libosquery_tables
+    PRIVATE
+      ${OSQUERY_CLOUD_TABLES}
+  )
+  
+  file(GLOB OSQUERY_CLOUD_TABLES_TESTS "${CMAKE_CURRENT_LIST_DIR}/cloud/tests/*.[cpm]*")
   if(OSQUERY_CLOUD_TABLES_TESTS)
     ADD_OSQUERY_TABLE_TEST(${OSQUERY_CLOUD_TABLES_TESTS})
   endif()
 
-  ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-ec2")
+  osquery_find_and_link_library(libosquery_tables "aws-cpp-sdk-ec2")
 endif()
 
 if(NOT SKIP_TSK AND POSIX)
-  file(GLOB OSQUERY_TSK_TABLES "sleuthkit/*.[cpm]*")
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_sleuthkit_tables ${OSQUERY_TSK_TABLES})
+  file(GLOB OSQUERY_TSK_TABLES "${CMAKE_CURRENT_LIST_DIR}/sleuthkit/*.[cpm]*")
+  target_sources(libosquery_tables
+    PRIVATE
+      ${OSQUERY_TSK_TABLES}
+  )
 
-  file(GLOB OSQUERY_TSK_TABLES_TESTS "sleuthkit/tests/*.[cpm]*")
+  file(GLOB OSQUERY_TSK_TABLES_TESTS "${CMAKE_CURRENT_LIST_DIR}/sleuthkit/tests/*.[cpm]*")
   if(OSQUERY_TSK_TABLES_TESTS)
     ADD_OSQUERY_TABLE_TEST(${OSQUERY_TSK_TABLES_TESTS})
   endif()
 
-  ADD_OSQUERY_LINK_ADDITIONAL("tsk")
+  osquery_find_and_link_library(libosquery_tables "tsk")
 endif()
 
 if(NOT SKIP_YARA AND POSIX)
-  file(GLOB OSQUERY_YARA_TABLES "yara/*.[cpm]*")
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_yara_tables ${OSQUERY_YARA_TABLES})
+  file(GLOB OSQUERY_YARA_TABLES "${CMAKE_CURRENT_LIST_DIR}/yara/*.[cpm]*")
+  target_sources(libosquery_tables
+    PRIVATE
+      ${OSQUERY_YARA_TABLES}
+  )
 
-  file(GLOB OSQUERY_YARA_TABLES_TESTS "yara/tests/*.[cpm]*")
+  file(GLOB OSQUERY_YARA_TABLES_TESTS "${CMAKE_CURRENT_LIST_DIR}/yara/tests/*.[cpm]*")
   if(OSQUERY_YARA_TABLES_TESTS)
     ADD_OSQUERY_TABLE_TEST(${OSQUERY_YARA_TABLES_TESTS})
   endif()
 
-  ADD_OSQUERY_LINK_ADDITIONAL("yara")
+  osquery_find_and_link_library(libosquery_tables "yara")
 endif()
 
 if(NOT SKIP_LLDPD AND POSIX)
-  file(GLOB OSQUERY_LLDPD_TABLES "lldpd/*.[cpm]*")
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_lldpd_tables ${OSQUERY_LLDPD_TABLES})
+  file(GLOB OSQUERY_LLDPD_TABLES "${CMAKE_CURRENT_LIST_DIR}/lldpd/*.[cpm]*")
+  target_sources(libosquery_tables
+    PRIVATE
+      ${OSQUERY_LLDPD_TABLES}
+  )
 
-  file(GLOB OSQUERY_LLDPD_TABLES_TESTS "lldpd/tests/*.[cpm]*")
+  file(GLOB OSQUERY_LLDPD_TABLES_TESTS "${CMAKE_CURRENT_LIST_DIR}/lldpd/tests/*.[cpm]*")
   if(OSQUERY_LLDPD_TABLES_TESTS)
     ADD_OSQUERY_TABLE_TEST(${OSQUERY_LLDPD_TABLES_TESTS})
   endif()
 
-  ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
+  osquery_find_and_link_library(libosquery_tables "lldpctl")
 endif()

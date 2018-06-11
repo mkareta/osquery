@@ -7,45 +7,48 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 if(NOT WINDOWS)
-  ADD_OSQUERY_LINK_ADDITIONAL("archive")
-  ADD_OSQUERY_LINK_ADDITIONAL("zstd")
+  osquery_find_and_link_library(libosquery "iconv")
+  osquery_find_and_link_library(libosquery "archive")
+  osquery_find_and_link_library(libosquery "zstd")
 else()
-  ADD_OSQUERY_LINK_ADDITIONAL("archive_static")
-  ADD_OSQUERY_LINK_ADDITIONAL("zstd_static")
+  osquery_find_and_link_library(libosquery "archive_static")
+  osquery_find_and_link_library(libosquery "zstd_static")
 endif()
 
 if(APPLE)
-  ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem_plist
-    darwin/plist.mm
+  target_sources(libosquery
+    PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/darwin/plist.mm"
   )
-
-  ADD_OSQUERY_LINK(TRUE "-framework Foundation")
+  target_link_libraries(libosquery "-framework Foundation")
 elseif(FREEBSD)
 elseif(LINUX)
-  ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem_linux
-    linux/mem.cpp
-    linux/proc.cpp
+  target_sources(libosquery
+    PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/linux/mem.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/linux/proc.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/linux/proc.h"
   )
 endif()
 
-file(GLOB OS_FILEOPS_SOURCE "${PROCESS_FAMILY}/*.cpp")
-
-ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem
-  filesystem.cpp
-  ${OS_FILEOPS_SOURCE}
+target_sources(libosquery 
+  PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/${PROCESS_FAMILY}/fileops.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/file_compression.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/fileops.h"
+    "${CMAKE_CURRENT_LIST_DIR}/filesystem.cpp"
 )
 
-ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_filesystem_compression
-  file_compression.cpp
+ADD_OSQUERY_TEST(
+  "${CMAKE_CURRENT_LIST_DIR}/tests/fileops_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/filesystem_tests.cpp"
 )
-
-file(GLOB OSQUERY_FILESYSTEM_TESTS "tests/*.cpp")
-ADD_OSQUERY_TEST(TRUE ${OSQUERY_FILESYSTEM_TESTS})
 
 if(APPLE)
-  file(GLOB OSQUERY_DARWIN_FILESYSTEM_TESTS "darwin/tests/*.cpp")
-  ADD_OSQUERY_TEST(TRUE ${OSQUERY_DARWIN_FILESYSTEM_TESTS})
-
-  file(GLOB OSQUERY_DARWIN_FILESYSTEM_BENCHMARKS "darwin/benchmarks/*.cpp")
-  ADD_OSQUERY_BENCHMARK(${OSQUERY_DARWIN_FILESYSTEM_BENCHMARKS})
+  ADD_OSQUERY_TEST(
+    "${CMAKE_CURRENT_LIST_DIR}/darwin/tests/plist_tests.cpp"
+  )
+  ADD_OSQUERY_BENCHMARK(
+    "${CMAKE_CURRENT_LIST_DIR}/darwin/benchmarks/plist_benchmarks.cpp"
+  )
 endif()

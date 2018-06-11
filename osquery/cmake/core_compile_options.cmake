@@ -6,13 +6,23 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-target_sources(libosquery
-  PRIVATE
-    "${CMAKE_CURRENT_LIST_DIR}/plugin.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/registry_factory.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/registry_interface.cpp"
-)
-
-ADD_OSQUERY_TEST(
-  "${CMAKE_CURRENT_LIST_DIR}/tests/registry_tests.cpp"
-)
+# Add all and extra for osquery code.
+if(CLANG AND POSIX)
+  add_compile_options(
+    -Wall
+    -Wextra
+    -pedantic
+    -Wuseless-cast
+    -Wno-c99-extensions
+    -Wno-zero-length-array
+    -Wno-unused-parameter
+    -Wno-gnu-case-range
+    -Weffc++
+  )
+  if(NOT FREEBSD)
+    add_compile_options(
+      -Wshadow-all
+      -Wno-shadow-field
+    )
+  endif()
+endif()

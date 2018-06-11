@@ -119,7 +119,6 @@ function Invoke-OsqueryMsbuild {
 
   $targets = @(
     'osquery_tests',
-    'osquery_additional_tests',
     'osquery_tables_tests'
   )
   foreach ($target in $targets) {

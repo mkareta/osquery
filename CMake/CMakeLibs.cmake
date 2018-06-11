@@ -54,22 +54,12 @@ macro(SET_OSQUERY_COMPILE TARGET)
   endif()
 endmacro(SET_OSQUERY_COMPILE)
 
-macro(ADD_DEFAULT_LINKS TARGET ADDITIONAL)
+macro(ADD_DEFAULT_LINKS TARGET REMOVE_ME_LATER)
   if(DEFINED ENV{OSQUERY_BUILD_SHARED})
     target_link_libraries(${TARGET} libosquery_shared)
-    if(${ADDITIONAL})
-      target_link_libraries(${TARGET} libosquery_additional_shared)
-    endif()
     target_link_libraries(${TARGET} "-Wl,-rpath,${CMAKE_BINARY_DIR}/osquery")
-    target_link_libraries(${TARGET} ${OSQUERY_LINKS})
-    if(${ADDITIONAL})
-      target_link_libraries(${TARGET} ${OSQUERY_ADDITIONAL_LINKS})
-    endif()
   else()
     TARGET_OSQUERY_LINK_WHOLE(${TARGET} libosquery)
-    if(${ADDITIONAL})
-      TARGET_OSQUERY_LINK_WHOLE(${TARGET} libosquery_additional)
-    endif()
   endif()
 endmacro()
 
@@ -82,122 +72,39 @@ macro(ADD_OSQUERY_PYTHON_TEST TEST_NAME SOURCE)
   endif()
 endmacro(ADD_OSQUERY_PYTHON_TEST)
 
-# Add a static or dynamic link to libosquery.a (the core library)
-macro(ADD_OSQUERY_LINK_CORE LINK)
-  ADD_OSQUERY_LINK(TRUE ${LINK} ${ARGN})
-endmacro(ADD_OSQUERY_LINK_CORE)
-
-# Add a static or dynamic link to libosquery_additional.a (the non-sdk library)
-macro(ADD_OSQUERY_LINK_ADDITIONAL LINK)
-  ADD_OSQUERY_LINK(FALSE ${LINK} ${ARGN})
-endmacro(ADD_OSQUERY_LINK_ADDITIONAL)
-
-# Core/non core link helping macros (tell the build to link ALL).
-macro(ADD_OSQUERY_LINK IS_CORE LINK)
-  if(${IS_CORE})
-    ADD_OSQUERY_LINK_INTERNAL("${LINK}" "${ARGN}" OSQUERY_LINKS)
-  elseif(NOT OSQUERY_BUILD_SDK_ONLY)
-    ADD_OSQUERY_LINK_INTERNAL("${LINK}" "${ARGN}" OSQUERY_ADDITIONAL_LINKS)
-  endif()
-endmacro(ADD_OSQUERY_LINK)
-
-macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
+function(osquery_find_library ITEM)
   # The relative linking set is used for static libraries.
-  set(LINK_PATHS_RELATIVE
+  set(LINK_PATHS
     "${BUILD_DEPS}/lib"
-    ${LINK_PATHS}
     ${OS_LIB_DIRS}
     "$ENV{HOME}"
   )
-
-  # The system linking set is for legacy ABI compatibility links and libraries
-  # known to exist on the system.
-  set(LINK_PATHS_SYSTEM
-    ${LINK_PATHS}
-    "${BUILD_DEPS}/legacy/lib"
-  )
-  if(LINUX)
-    # Allow the build to search the 'default' dependency home for libgcc_s.
-    list(APPEND LINK_PATHS_SYSTEM "${BUILD_DEPS}/lib")
+  
+  if(NOT DEFINED ${${ITEM}_library})
+    find_library("${ITEM}_library"
+        NAMES
+          "${ITEM}.lib"
+          "${ITEM}-mt"
+          "${ITEM}"
+        HINTS ${LINK_PATHS}
+    )
+    LOG_LIBRARY(${ITEM} "${${ITEM}_library}")
   endif()
-  # The OS library paths are very important for system linking.
-  list(APPEND LINK_PATHS_SYSTEM ${OS_LIB_DIRS})
+endfunction()
 
-  if(NOT "${LINK}" MATCHES "(^[-/].*)")
-    string(REPLACE " " ";" ITEMS "${LINK}")
-    foreach(ITEM ${ITEMS})
-      if(NOT DEFINED ${${ITEM}_library})
-        if("${ITEM}" MATCHES "(^lib.*)" OR "${ITEM}" MATCHES "(.*lib$)" OR DEFINED ENV{BUILD_LINK_SHARED})
-          # Use a system-provided library
-          set(ITEM_SYSTEM TRUE)
-        else()
-          set(ITEM_SYSTEM FALSE)
-        endif()
-        if(NOT ${ITEM_SYSTEM})
-          find_library("${ITEM}_library"
-            NAMES
-              "${ITEM}.lib"
-              "lib${ITEM}.lib"
-              "lib${ITEM}-mt.a"
-              "lib${ITEM}.a"
-              "${ITEM}"
-            HINTS ${LINK_PATHS_RELATIVE})
-        else()
-          find_library("${ITEM}_library"
-            NAMES
-              "${ITEM}.lib"
-              "lib${ITEM}.lib"
-              "lib${ITEM}-mt.so"
-              "lib${ITEM}.so"
-              "lib${ITEM}-mt.dylib"
-              "lib${ITEM}.dylib"
-              "${ITEM}-mt.so"
-              "${ITEM}.so"
-              "${ITEM}-mt.dylib"
-              "${ITEM}.dylib"
-              "${ITEM}"
-            HINTS ${LINK_PATHS_SYSTEM})
-        endif()
-        LOG_LIBRARY(${ITEM} "${${ITEM}_library}")
-        if("${${ITEM}_library}" STREQUAL "${ITEM}_library-NOTFOUND")
-          WARNING_LOG("Dependent library '${ITEM}' not found")
-          list(APPEND ${LINK_SET} ${ITEM})
-        else()
-          list(APPEND ${LINK_SET} "${${ITEM}_library}")
-        endif()
-      endif()
-      if("${${ITEM}_library}" MATCHES "/usr/local/lib.*")
-        if(NOT FREEBSD AND NOT DEFINED ENV{SKIP_DEPS})
-          WARNING_LOG("Dependent library '${ITEM}' installed locally (beware!)")
-        endif()
-      endif()
-    endforeach()
-  else()
-    list(APPEND ${LINK_SET} ${LINK})
+function(osquery_find_and_link_library TARGET LIB_NAME)
+  osquery_find_library(${LIB_NAME})
+  if("${${LIB_NAME}_library}" STREQUAL "${LIB_NAME}_library-NOTFOUND")
+    WARNING_LOG("LIBRARY NOT FOUND: ${LIB_NAME}")
   endif()
-  set(${LINK_SET} "${${LINK_SET}}" PARENT_SCOPE)
-endmacro(ADD_OSQUERY_LINK_INTERNAL)
+  target_link_libraries(${TARGET} "${${LIB_NAME}_library}")
+endfunction()
 
-# Add a test and sources for components in libosquery.a (the core library)
-macro(ADD_OSQUERY_TEST_CORE)
-  ADD_OSQUERY_TEST(TRUE ${ARGN})
-endmacro(ADD_OSQUERY_TEST_CORE)
-
-# Add a test and sources for components in libosquery_additional.a (the non-sdk library)
-macro(ADD_OSQUERY_TEST_ADDITIONAL)
-  ADD_OSQUERY_TEST(FALSE ${ARGN})
-endmacro(ADD_OSQUERY_TEST_ADDITIONAL)
-
-# Core/non core test names and sources macros.
-macro(ADD_OSQUERY_TEST IS_CORE)
-  if(NOT SKIP_TESTS AND (${IS_CORE} OR NOT OSQUERY_BUILD_SDK_ONLY))
-    if(${IS_CORE})
-      list(APPEND OSQUERY_TESTS ${ARGN})
-      set(OSQUERY_TESTS ${OSQUERY_TESTS} PARENT_SCOPE)
-    else()
-      list(APPEND OSQUERY_ADDITIONAL_TESTS ${ARGN})
-      set(OSQUERY_ADDITIONAL_TESTS ${OSQUERY_ADDITIONAL_TESTS} PARENT_SCOPE)
-    endif()
+# Add a test and sources for osquery
+macro(ADD_OSQUERY_TEST)
+  if(NOT SKIP_TESTS)
+    list(APPEND OSQUERY_TESTS ${ARGN})
+    set(OSQUERY_TESTS ${OSQUERY_TESTS} PARENT_SCOPE)
   endif()
 endmacro(ADD_OSQUERY_TEST)
 
@@ -232,16 +139,6 @@ macro(ADD_OSQUERY_KERNEL_BENCHMARK)
   endif()
 endmacro(ADD_OSQUERY_KERNEL_BENCHMARK)
 
-# Add sources to libosquery.a (the core library)
-macro(ADD_OSQUERY_LIBRARY_CORE TARGET)
-  ADD_OSQUERY_LIBRARY(TRUE ${TARGET} ${ARGN})
-endmacro(ADD_OSQUERY_LIBRARY_CORE)
-
-# Add sources to libosquery_additional.a (the non-sdk library)
-macro(ADD_OSQUERY_LIBRARY_ADDITIONAL TARGET)
-  ADD_OSQUERY_LIBRARY(FALSE ${TARGET} ${ARGN})
-endmacro(ADD_OSQUERY_LIBRARY_ADDITIONAL)
-
 function(add_darwin_compile_flag_if_needed file) 
   set(EXT_POSITION -1)
   string(FIND "${SOURCE_FILE}" ".mm" EXT_POSITION)
@@ -250,24 +147,6 @@ function(add_darwin_compile_flag_if_needed file)
       PROPERTIES COMPILE_FLAGS ${OBJCXX_COMPILE_FLAGS})
   endif()
 endfunction()
-
-# Core/non core lists of target source files.
-macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
-  if(${IS_CORE} OR NOT OSQUERY_BUILD_SDK_ONLY)
-    foreach(SOURCE_FILE ${ARGN})
-      add_darwin_compile_flag_if_needed(${SOURCE_FILE})
-    endforeach()
-    add_library(${TARGET} OBJECT ${ARGN})
-    add_dependencies(${TARGET} osquery_extensions)
-    if(${IS_CORE})
-      list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
-      set(OSQUERY_SOURCES ${OSQUERY_SOURCES} PARENT_SCOPE)
-    else()
-      list(APPEND OSQUERY_ADDITIONAL_SOURCES $<TARGET_OBJECTS:${TARGET}>)
-      set(OSQUERY_ADDITIONAL_SOURCES ${OSQUERY_ADDITIONAL_SOURCES} PARENT_SCOPE)
-    endif()
-  endif()
-endmacro(ADD_OSQUERY_LIBRARY TARGET)
 
 function(darwin_target_sources target ...)
   target_sources(${ARGV})
@@ -281,6 +160,7 @@ macro(ADD_OSQUERY_EXTENSION TARGET)
   add_executable(${TARGET} ${ARGN})
   TARGET_OSQUERY_LINK_WHOLE(${TARGET} libosquery)
   set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "${TARGET}.ext")
+  target_sources(${TARGET} PRIVATE "${CMAKE_SOURCE_DIR}/osquery/extensions/foreign_tables_stub.cpp")
 endmacro(ADD_OSQUERY_EXTENSION)
 
 function(add_osquery_extension_ex class_name extension_type extension_name ${ARGN})
@@ -370,7 +250,6 @@ function(generate_osquery_extension_group)
   if("${extension_source_files}" STREQUAL "")
     return()
   endif()
-
   # Allow the user to customize the extension name and version using
   # environment variables
   if(DEFINED ENV{OSQUERY_EXTENSION_GROUP_NAME})

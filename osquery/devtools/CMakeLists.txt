@@ -6,9 +6,11 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-ADD_OSQUERY_LIBRARY(FALSE osquery_devtools
-  printer.cpp
+target_sources(libosquery
+  PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/printer.cpp"
 )
 
-file(GLOB OSQUERY_DEVTOOLS_TESTS "tests/*.cpp")
-ADD_OSQUERY_TEST(FALSE ${OSQUERY_DEVTOOLS_TESTS})
+ADD_OSQUERY_TEST(
+  "${CMAKE_CURRENT_LIST_DIR}/tests/printer_tests.cpp"
+)

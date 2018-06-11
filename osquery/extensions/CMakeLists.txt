@@ -24,18 +24,27 @@ if(LINUX OR DARWIN)
     )
     add_definitions(-DFBTHRIFT -Wno-c++17-extensions)
 
-    ADD_OSQUERY_LINK_CORE("libfolly.so")
-    ADD_OSQUERY_LINK_CORE("libsnappy.so")
-    ADD_OSQUERY_LINK_CORE("wangle")
-    ADD_OSQUERY_LINK_CORE("mstch")
-    ADD_OSQUERY_LINK_CORE("gssapi_krb5")
-    ADD_OSQUERY_LINK_CORE("event")
-    ADD_OSQUERY_LINK_CORE("double-conversion")
+    osquery_find_and_link_library(libosquery "libfolly")
+    osquery_find_and_link_library(libosquery "libsnappy")
+    osquery_find_and_link_library(libosquery "wangle")
+    osquery_find_and_link_library(libosquery "mstch")
+    osquery_find_and_link_library(libosquery "gssapi_krb5")
+    osquery_find_and_link_library(libosquery "event")
+    osquery_find_and_link_library(libosquery "double-conversion")
 
     # FBThrift static libraries.
-    ADD_OSQUERY_LINK_CORE("thriftcpp2 thrift-core thriftprotocol thriftfrozen2")
-    ADD_OSQUERY_LINK_CORE("transport server concurrency security protocol async")
-    ADD_OSQUERY_LINK_CORE("crypto ssl")
+    osquery_find_and_link_library(libosquery "thriftcpp2")
+    osquery_find_and_link_library(libosquery "thrift-core")
+    osquery_find_and_link_library(libosquery "thriftprotocol")
+    osquery_find_and_link_library(libosquery "thriftfrozen2")
+    osquery_find_and_link_library(libosquery "transport")
+    osquery_find_and_link_library(libosquery "server")
+    osquery_find_and_link_library(libosquery "concurrency")
+    osquery_find_and_link_library(libosquery "security")
+    osquery_find_and_link_library(libosquery "protocol")
+    osquery_find_and_link_library(libosquery "async")
+    osquery_find_and_link_library(libosquery "crypto")
+    osquery_find_and_link_library(libosquery "ssl")
 
     set(THRIFT_IMPL_FILE impl_fbthrift.cpp)
   else()
@@ -66,12 +75,15 @@ if(NOT WINDOWS)
   )
 endif()
 
-ADD_OSQUERY_LIBRARY(TRUE osquery_extensions
-  ${THRIFT_GENERATED_FILES}
-  ${THRIFT_IMPL_FILE}
-  extensions.cpp
-  interface.cpp
+target_sources(libosquery
+  PRIVATE
+    "${THRIFT_GENERATED_FILES}"
+    "${CMAKE_CURRENT_LIST_DIR}/${THRIFT_IMPL_FILE}"
+    "${CMAKE_CURRENT_LIST_DIR}/extensions.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/interface.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/interface.h"
 )
 
-file(GLOB OSQUERY_EXTENSIONS_TESTS "tests/*.cpp")
-ADD_OSQUERY_TEST(TRUE ${OSQUERY_EXTENSIONS_TESTS})
+ADD_OSQUERY_TEST(
+  "${CMAKE_CURRENT_LIST_DIR}/tests/extensions_tests.cpp"
+)
