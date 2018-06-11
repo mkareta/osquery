@@ -321,3 +321,8 @@ test: .setup
 	fi
 	@cd $(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS) $(MAKECMDGOALS)
+
+xcode:
+	@rm -rf ${BUILD_DIR}
+	@mkdir -p ${BUILD_DIR}
+	@cd ${BUILD_DIR} && ${CMAKE} -G Xcode

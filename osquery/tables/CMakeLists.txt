@@ -100,7 +100,7 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
     "${CMAKE_CURRENT_LIST_DIR}/${CATEGORY}/${TABLE_PLATFORM}/*.[cpm]*"
   )
   if(OSQUERY_${CATEGORY}_TABLES)
-    target_sources(libosquery_tables
+    darwin_target_sources(libosquery_tables
       PRIVATE
         ${OSQUERY_${CATEGORY}_TABLES}
     )

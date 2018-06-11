@@ -140,11 +140,9 @@ macro(ADD_OSQUERY_KERNEL_BENCHMARK)
 endmacro(ADD_OSQUERY_KERNEL_BENCHMARK)
 
 function(add_darwin_compile_flag_if_needed file) 
-  set(EXT_POSITION -1)
-  string(FIND "${SOURCE_FILE}" ".mm" EXT_POSITION)
-  if(EXT_POSITION GREATER 0)
-    set_source_files_properties("${file}"
-      PROPERTIES COMPILE_FLAGS ${OBJCXX_COMPILE_FLAGS})
+  get_filename_component(extension ${file} EXT)
+  if("${extension}" STREQUAL ".mm")
+    set_source_files_properties("${file}" PROPERTIES COMPILE_FLAGS ${OBJCXX_COMPILE_FLAGS})
   endif()
 endfunction()
 
@@ -154,6 +152,22 @@ function(darwin_target_sources target ...)
   foreach(file ${files})
     add_darwin_compile_flag_if_needed(${file})
   endforeach(file)
+endfunction()
+
+function(target_group_sources target root)
+  get_filename_component(root ${root} ABSOLUTE)
+  
+  get_target_property(files ${target} SOURCES)
+  
+  foreach(file ${files})
+    get_filename_component(file ${file} ABSOLUTE)
+    string(REGEX MATCH "^${root}" item ${file})
+    if(item)
+      LIST(APPEND root_files ${file})
+    endif(item)
+  endforeach(file)
+  message("source_group(TREE ${root} FILES ${root_files})")
+  source_group(TREE ${root} FILES ${root_files})
 endfunction()
 
 macro(ADD_OSQUERY_EXTENSION TARGET)

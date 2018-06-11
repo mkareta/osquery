@@ -67,6 +67,8 @@ target_sources(libosquery
       "$<TARGET_OBJECTS:osquery_sqlite>"
 )
 
+target_group_sources(libosquery "${CMAKE_CURRENT_LIST_DIR}")
+
 # third-party objects
 if(NOT FREEBSD)
   target_sources(libosquery
@@ -110,6 +112,8 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
         "$<TARGET_OBJECTS:osquery_foreign_amalgamation>"
         "$<TARGET_OBJECTS:osquery_amalgamation>"
     )
+
+    target_group_sources(libosquery_tables "${CMAKE_CURRENT_LIST_DIR}/tables")
   endif()
 endif()
 
@@ -173,8 +177,8 @@ if(NOT OSQUERY_BUILD_SDK_ONLY AND NOT FUZZ)
   )
 
   ADD_DEFAULT_LINKS(daemon TRUE)
-  target_link_libraries(daemon libosquery)
-  target_link_libraries(daemon libosquery_tables)
+  TARGET_OSQUERY_LINK_WHOLE(daemon libosquery)
+  TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_tables)
 
   SET_OSQUERY_COMPILE(daemon)
   set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
