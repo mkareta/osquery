@@ -87,14 +87,13 @@ endif()
 
 if(APPLE)
   osquery_find_and_link_library(libosquery "lzma")
-  osquery_find_and_link_library(libosquery "bz2")
 else()
   if(POSIX)
     osquery_find_and_link_library(libosquery "lzma")
   endif()
-  osquery_find_and_link_library(libosquery "bz2")
-  osquery_find_and_link_library(libosquery "bz2")
 endif()
+
+osquery_find_and_link_library(libosquery "bz2")
 
 # The platform-specific SDK + core linker flags.
 if(POSIX)
