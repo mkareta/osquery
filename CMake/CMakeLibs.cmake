@@ -84,6 +84,7 @@ function(osquery_find_library ITEM)
     find_library("${ITEM}_library"
         NAMES
           "${ITEM}.lib"
+          "lib${ITEM}.lib"
           "${ITEM}-mt"
           "${ITEM}"
         HINTS ${LINK_PATHS}
@@ -166,7 +167,6 @@ function(target_group_sources target root)
       LIST(APPEND root_files ${file})
     endif(item)
   endforeach(file)
-  message("source_group(TREE ${root} FILES ${root_files})")
   source_group(TREE ${root} FILES ${root_files})
 endfunction()
 

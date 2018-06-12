@@ -41,10 +41,8 @@ elseif(WINDOWS)
   osquery_find_and_link_library(libosquery "wevtapi.lib")
   target_sources(libosquery 
     PRIVATE
-      "${CMAKE_CURRENT_LIST_DIR}/windows/events.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/windows/kernel.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/windows/kernel.h"
-      "${CMAKE_CURRENT_LIST_DIR}/windows/pathset.h"
+      "${CMAKE_CURRENT_LIST_DIR}/windows/windows_event_log.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/windows/windows_event_log.h"
   )
 else() #LINUX
   osquery_find_and_link_library(libosquery "udev")
@@ -126,6 +124,6 @@ elseif(LINUX)
   )
 elseif(WINDOWS)
   ADD_OSQUERY_TEST(
-    "${CMAKE_CURRENT_LIST_DIR}/windows/windows_event_log_tests.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/windows/tests/windows_event_log_tests.cpp"
   )
 endif()

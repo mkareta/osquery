@@ -43,7 +43,7 @@ if(WINDOWS)
   osquery_find_and_link_library(libosquery "zlibstatic")
 
   # Enable control flow guard
-  osquery_find_and_link_library(libosquery "-guard:cf")
+  target_link_libraries(libosquery "-guard:cf")
 else()
   osquery_find_and_link_library(libosquery "pthread")
   osquery_find_and_link_library(libosquery "z")
