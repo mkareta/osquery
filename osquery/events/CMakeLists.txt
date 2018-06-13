@@ -25,7 +25,6 @@ if(APPLE)
       "${CMAKE_CURRENT_LIST_DIR}/darwin/fsevents.h"
       "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.h"
-      "${CMAKE_CURRENT_LIST_DIR}/darwin/kernel_util.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/darwin/openbsm.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/darwin/openbsm.h"
       "${CMAKE_CURRENT_LIST_DIR}/darwin/scnetwork.cpp"
@@ -35,7 +34,6 @@ elseif(FREEBSD)
   target_sources(libosquery 
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/freebsd/fsevents.h"
-      "${CMAKE_CURRENT_LIST_DIR}/freebsd/kernel_util.cpp"
   )
 elseif(WINDOWS)
   osquery_find_and_link_library(libosquery "wevtapi.lib")
@@ -56,7 +54,6 @@ else() #LINUX
       "${CMAKE_CURRENT_LIST_DIR}/linux/auditeventpublisher.h"
       "${CMAKE_CURRENT_LIST_DIR}/linux/inotify.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/linux/inotify.h"
-      "${CMAKE_CURRENT_LIST_DIR}/linux/kernel_util.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/linux/syslog.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/linux/syslog.h"
       "${CMAKE_CURRENT_LIST_DIR}/linux/tests"
@@ -87,28 +84,6 @@ if(NOT WINDOWS)
     ${OSQUERY_EVENTS_PLATFORM_BENCHMARKS}
   )
 
-  # Kernel-related userland code.
-  if(NOT SKIP_KERNEL)
-    message("Not skip kernel ? ${SKIP_KERNAL}")
-    file(GLOB OSQUERY_EVENTS_KERNEL "kernel/*.cpp")
-    target_sources(libosquery
-      PRIVATE
-        "${CMAKE_CURRENT_LIST_DIR}/kernel.cpp"
-        "${OSQUERY_EVENTS_KERNEL}"
-    )
-
-    # Special kernel test define when building non-SDK and non-Release.
-    if(NOT OSQUERY_BUILD_RELEASE AND NOT OSQUERY_BUILD_SDK_ONLY)
-      set_target_properties(osquery_events_kernel
-        PROPERTIES COMPILE_DEFINITIONS "KERNEL_TEST=1")
-    endif()
-
-    file(GLOB OSQUERY_EVENTS_KERNEL_TESTS "kernel/tests/*.cpp")
-    ADD_OSQUERY_KERNEL_TEST(${OSQUERY_EVENTS_KERNEL_TESTS})
-
-    file(GLOB OSQUERY_EVENTS_KERNEL_BENCHMARKS "kernel/benchmarks/*.cpp")
-    ADD_OSQUERY_KERNEL_BENCHMARK(${OSQUERY_EVENTS_KERNEL_BENCHMARKS})
-  endif()
 endif()
 
 if(APPLE)

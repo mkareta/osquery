@@ -146,17 +146,6 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CATEGORY}_TABLES_TESTS})
 endforeach()
 
-if(NOT SKIP_KERNEL)
-  file(GLOB OSQUERY_KERNEL_TABLES
-    "kernel/*.[cpm]*"
-    "*/${TABLE_PLATFORM}/kernel/*.[cpm]*"
-  )
-  target_sources(libosquery_tables
-    PRIVATE
-      ${OSQUERY_KERNEL_TABLES}
-  )
-endif()
-
 file(GLOB OSQUERY_UTILITY_TABLES "${CMAKE_CURRENT_LIST_DIR}/utility/*.cpp")
 target_sources(libosquery_tables
   PRIVATE
