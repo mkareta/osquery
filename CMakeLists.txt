@@ -485,7 +485,9 @@ if(OSQUERY_BUILD_VERSION STREQUAL "")
   WARNING_LOG("Setting the version to: 1.0.0-unknown (beware!)")
   set(OSQUERY_BUILD_VERSION "1.0.0-unknown")
 endif()
-if(DEFINED ENV{SDK_VERSION})
+
+# SDK_VERSION is defined by XCode as current osx sdk version
+if(DEFINED ENV{SDK_VERSION} AND NOT (CMAKE_GENERATOR STREQUAL Xcode))
   set(OSQUERY_BUILD_SDK_VERSION "$ENV{SDK_VERSION}")
 else()
   string(REPLACE "-" ";" OSQUERY_BUILD_SDK_VERSION ${OSQUERY_BUILD_VERSION})

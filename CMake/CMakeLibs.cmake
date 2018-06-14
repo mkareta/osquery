@@ -54,7 +54,7 @@ macro(SET_OSQUERY_COMPILE TARGET)
   endif()
 endmacro(SET_OSQUERY_COMPILE)
 
-macro(ADD_DEFAULT_LINKS TARGET REMOVE_ME_LATER)
+macro(ADD_DEFAULT_LINKS TARGET)
   if(DEFINED ENV{OSQUERY_BUILD_SHARED})
     target_link_libraries(${TARGET} libosquery_shared)
     target_link_libraries(${TARGET} "-Wl,-rpath,${CMAKE_BINARY_DIR}/osquery")
@@ -116,14 +116,6 @@ macro(ADD_OSQUERY_TABLE_TEST)
   endif()
 endmacro(ADD_OSQUERY_TABLE_TEST)
 
-# Add kernel test macro.
-macro(ADD_OSQUERY_KERNEL_TEST)
-  if(NOT SKIP_TESTS)
-    list(APPEND OSQUERY_KERNEL_TESTS ${ARGN})
-    set(OSQUERY_KERNEL_TESTS ${OSQUERY_KERNEL_TESTS} PARENT_SCOPE)
-  endif()
-endmacro(ADD_OSQUERY_KERNEL_TEST)
-
 # Add benchmark macro.
 macro(ADD_OSQUERY_BENCHMARK)
   if(NOT SKIP_TESTS)
@@ -131,14 +123,6 @@ macro(ADD_OSQUERY_BENCHMARK)
     set(OSQUERY_BENCHMARKS ${OSQUERY_BENCHMARKS} PARENT_SCOPE)
   endif()
 endmacro(ADD_OSQUERY_BENCHMARK)
-
-# Add kernel benchmark macro.
-macro(ADD_OSQUERY_KERNEL_BENCHMARK)
-  if(NOT SKIP_TESTS)
-    list(APPEND OSQUERY_KERNEL_BENCHMARKS ${ARGN})
-    set(OSQUERY_KERNEL_BENCHMARKS ${OSQUERY_KERNEL_BENCHMARKS} PARENT_SCOPE)
-  endif()
-endmacro(ADD_OSQUERY_KERNEL_BENCHMARK)
 
 function(add_darwin_compile_flag_if_needed file) 
   get_filename_component(extension ${file} EXT)

@@ -146,10 +146,11 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CATEGORY}_TABLES_TESTS})
 endforeach()
 
-file(GLOB OSQUERY_UTILITY_TABLES "${CMAKE_CURRENT_LIST_DIR}/utility/*.cpp")
 target_sources(libosquery_tables
   PRIVATE
-    ${OSQUERY_UTILITY_TABLES}
+    "${CMAKE_CURRENT_LIST_DIR}/utility/file.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/utility/osquery.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/utility/time.cpp"
 )
 
 if(NOT SKIP_AWS AND LINUX)
