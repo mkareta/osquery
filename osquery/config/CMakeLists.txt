@@ -8,43 +8,54 @@
 
 target_sources(libosquery
   PRIVATE
-    "${CMAKE_CURRENT_LIST_DIR}/additional_parsers/auto_constructed_tables.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/additional_parsers/auto_constructed_tables.h"
-    "${CMAKE_CURRENT_LIST_DIR}/config.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/packs.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/decorators.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/decorators.h"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/events_parser.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/feature_vectors.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/feature_vectors.h"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/file_paths.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/kafka_topics.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/kafka_topics.h"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/logger.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/logger.h"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/options.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/prometheus_targets.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/prometheus_targets.h"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/tests"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/views.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/plugins/filesystem_config.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/plugins/tls_config.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/plugins/tls_config.h"
-    "${CMAKE_CURRENT_LIST_DIR}/update.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/additional_parsers/auto_constructed_tables.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/additional_parsers/auto_constructed_tables.h"
+	"${CMAKE_CURRENT_LIST_DIR}/config.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/packs.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/decorators.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/decorators.h"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/events_parser.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/feature_vectors.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/feature_vectors.h"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/file_paths.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/kafka_topics.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/kafka_topics.h"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/logger.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/logger.h"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/options.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/prometheus_targets.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/prometheus_targets.h"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/tests"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/views.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/update.cpp"
+)
+
+target_sources(libosquery_plugins
+	PRIVATE
+		"${CMAKE_CURRENT_LIST_DIR}/plugins/filesystem_config.cpp"
+)
+
+# FIXME
+# Extensions expect tls_config and tls_enroll plugins 
+# so we need to put them to main libosquery for now
+target_sources(libosquery
+  PRIVATE
+		"${CMAKE_CURRENT_LIST_DIR}/plugins/tls_config.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/plugins/tls_config.h"
 )
 
 ADD_OSQUERY_TEST(
-    "${CMAKE_CURRENT_LIST_DIR}/tests/config_tests.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/file_paths_tests.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/views_tests.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/options_tests.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/events_tests.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/tls_config_tests.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/tests/config_tests.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/tests/file_paths_tests.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/tests/views_tests.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/tests/options_tests.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/tests/events_tests.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/plugins/tests/tls_config_tests.cpp"
 )
 
 # FIXME 
 # Use ADD_OSQUERY_TEST after test fix
 ADD_OSQUERY_TABLE_TEST(
-    "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/decorators_tests.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/tests/packs_tests.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/parsers/tests/decorators_tests.cpp"
+	"${CMAKE_CURRENT_LIST_DIR}/tests/packs_tests.cpp"
 )

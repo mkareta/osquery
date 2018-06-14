@@ -24,7 +24,7 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/utility.h"
 )
 
-ADD_OSQUERY_TEST(
+ADD_OSQUERY_TABLE_TEST(
   "${CMAKE_CURRENT_LIST_DIR}/enroll/plugins/tests/tls_enroll_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/enroll/tests/enroll_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/serializers/tests/json_serializers_tests.cpp"

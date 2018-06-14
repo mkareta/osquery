@@ -9,8 +9,6 @@
 target_sources(libosquery
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/database.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/plugins/ephemeral.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/plugins/ephemeral.h"
 )
 
 ADD_OSQUERY_TEST(
@@ -20,12 +18,14 @@ ADD_OSQUERY_TEST(
   "${CMAKE_CURRENT_LIST_DIR}/tests/results_tests.cpp"
 )
 
-target_sources(libosquery
+target_sources(libosquery_plugins
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/plugins/rocksdb.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/plugins/rocksdb.h"
     "${CMAKE_CURRENT_LIST_DIR}/plugins/sqlite.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/plugins/sqlite.h"
+    "${CMAKE_CURRENT_LIST_DIR}/plugins/ephemeral.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/plugins/ephemeral.h"
 )
 
 target_compile_definitions(libosquery

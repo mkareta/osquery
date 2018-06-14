@@ -9,6 +9,10 @@
 target_sources(libosquery
   PRIVATE 
     "${CMAKE_CURRENT_LIST_DIR}/distributed.cpp"
+)
+
+target_sources(libosquery
+  PRIVATE 
     "${CMAKE_CURRENT_LIST_DIR}/plugins/tls_distributed.cpp"
 )
 

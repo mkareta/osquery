@@ -26,6 +26,10 @@ include(cmake/core_compile_options.cmake)
 add_library(libosquery STATIC main/lib.cpp)
 set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
 
+# All plugins to add them only to daemon and some tests
+# Will be slightly redesigned in future
+add_library(libosquery_plugins STATIC)
+
 if(DEFINED ENV{SANITIZE})
   if(DEFINED ENV{SANITIZE_THREAD})
     ADD_OSQUERY_LINK_CORE(-fsanitize=thread)
@@ -175,6 +179,7 @@ if(NOT OSQUERY_BUILD_SDK_ONLY AND NOT FUZZ)
   )
 
   ADD_DEFAULT_LINKS(daemon)
+  TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_plugins)
   TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_tables)
 
   SET_OSQUERY_COMPILE(daemon)
@@ -235,8 +240,6 @@ if(NOT SKIP_TESTS)
   add_library(osquery_test_utils OBJECT 
         "${CMAKE_CURRENT_LIST_DIR}/tests/test_additional_util.cpp"
         "${CMAKE_CURRENT_LIST_DIR}/tests/test_additional_util.h"
-        # "${CMAKE_CURRENT_LIST_DIR}/tests/test_util.cpp"
-        # "${CMAKE_CURRENT_LIST_DIR}/tests/test_util.h"
   )
 
   # osquery core set of unit tests build with SDK.
@@ -247,7 +250,7 @@ if(NOT SKIP_TESTS)
     ${OSQUERY_TESTS}
   )
   ADD_DEFAULT_LINKS(osquery_tests)
-  # TARGET_OSQUERY_LINK_WHOLE(osquery_tests libosquery_tables)
+  TARGET_OSQUERY_LINK_WHOLE(osquery_tests libosquery_plugins)
 
   target_link_libraries(osquery_tests gtest gmock)
   SET_OSQUERY_COMPILE(osquery_tests "${GTEST_FLAGS}")
@@ -265,6 +268,7 @@ if(NOT SKIP_TESTS)
     
     ADD_DEFAULT_LINKS(osquery_benchmarks)
     TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery_tables)
+    TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery_plugins)
     SET_OSQUERY_COMPILE(osquery_benchmarks "${GTEST_FLAGS}")
     set(BENCHMARK_TARGET "$<TARGET_FILE:osquery_benchmarks>")
 
@@ -286,6 +290,7 @@ if(NOT SKIP_TESTS)
     )
     ADD_DEFAULT_LINKS(osquery_tables_tests)
     TARGET_OSQUERY_LINK_WHOLE(osquery_tables_tests libosquery_tables)
+    TARGET_OSQUERY_LINK_WHOLE(osquery_tables_tests libosquery_plugins)
     target_link_libraries(osquery_tables_tests gtest gmock)
     target_sources(osquery_tables_tests PRIVATE "$<TARGET_OBJECTS:osquery_test_utils>")
     SET_OSQUERY_COMPILE(osquery_tables_tests "${GTEST_FLAGS}")

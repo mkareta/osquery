@@ -179,7 +179,12 @@ TEST_F(SQLiteUtilTests, test_get_query_tables) {
   std::string query =
       "SELECT * FROM time, osquery_info, (SELECT * FROM file) ff GROUP BY pid";
   std::vector<std::string> tables;
+  // FIXME:
+  // There is mock inside of getQueryTables
+  // Switch off mock for this test
+  kToolType = ToolType::DAEMON;
   auto status = getQueryTables(query, tables);
+  kToolType = ToolType::TEST;
   EXPECT_TRUE(status.ok());
 
   std::vector<std::string> expected = {"file", "time", "osquery_info"};
