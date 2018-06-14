@@ -11,10 +11,6 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/logger.cpp"
 )
 
-ADD_OSQUERY_TEST(
-  "${CMAKE_CURRENT_LIST_DIR}/tests/logger_tests.cpp"
-)
-
 target_sources(libosquery
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/plugins/buffered.cpp"
@@ -41,15 +37,17 @@ elseif(WINDOWS)
   )
 endif()
 
+# FIXME 
+# Use ADD_OSQUERY_TEST after test fix
 # There is a significant difference between the Glog-backed filesystem plugin
 # and others, which use a Glog sink. They must be tested in tandem.
-ADD_OSQUERY_TEST(
+ADD_OSQUERY_TABLE_TEST(
   "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/filesystem_logger_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/buffered_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/tls_logger_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/logger_tests.cpp"
 )
 
-file(GLOB OSQUERY_LOGGER_BENCHMARKS "benchmarks/*.cpp")
 ADD_OSQUERY_BENCHMARK(
   "${CMAKE_CURRENT_LIST_DIR}/benchmarks/logger_benchmarks.cpp"
 )

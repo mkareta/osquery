@@ -33,12 +33,18 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/update.cpp"
 )
 
-file(GLOB OSQUERY_CONFIG_TESTS "tests/config_tests.cpp")
-ADD_OSQUERY_TEST(${OSQUERY_CONFIG_TESTS})
+ADD_OSQUERY_TEST(
+    "${CMAKE_CURRENT_LIST_DIR}/tests/config_tests.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/file_paths_tests.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/views_tests.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/options_tests.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/events_tests.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/tls_config_tests.cpp"
+)
 
-# The packs tests will attempt to execute SQL, they must be additional
-file(GLOB OSQUERY_PACKS_TESTS "tests/packs_tests.cpp")
-ADD_OSQUERY_TEST(${OSQUERY_PACKS_TESTS})
-
-file(GLOB OSQUERY_CONFIG_PLUGIN_TESTS "*/tests/*.cpp")
-ADD_OSQUERY_TEST(${OSQUERY_CONFIG_PLUGIN_TESTS})
+# FIXME 
+# Use ADD_OSQUERY_TEST after test fix
+ADD_OSQUERY_TABLE_TEST(
+    "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/decorators_tests.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/tests/packs_tests.cpp"
+)

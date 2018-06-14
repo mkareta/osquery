@@ -216,11 +216,10 @@ Status mockGetQueryTables(std::string copy_q,
 }
 
 Status getQueryTables(const std::string& q, std::vector<std::string>& tables) {
-  if (!Registry::get().exists("sql", "sql") && kToolType == ToolType::TEST) {
+  if (kToolType == ToolType::TEST) {
     // We 'mock' this functionality for internal tests.
     return mockGetQueryTables(q, tables);
   }
-
   PluginResponse response;
   auto status = Registry::call(
       "sql", "sql", {{"action", "tables"}, {"query", q}}, response);

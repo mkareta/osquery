@@ -138,6 +138,12 @@ TEST_F(FilesystemLoggerTests, test_log_status) {
   readFile(status_path, content);
   lines = osquery::split(content, "\n").size();
   EXPECT_EQ(6U, lines);
+
+  // FIXME
+  // As a workaround for now directly shutdown google logging
+  // That was init by initStatusLogger, since there is no
+  // shutdownStatusLogger, and no way to revert global state back
+  google::ShutdownGoogleLogging();
 }
 
 TEST_F(FilesystemLoggerTests, test_log_snapshot) {

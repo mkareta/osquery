@@ -34,7 +34,9 @@ if(NOT SKIP_CARVER)
   )
 endif()
 
-ADD_OSQUERY_TEST(
+# This test for some reason require tables
+# So need to temporary move this test to table tests
+ADD_OSQUERY_TABLE_TEST(
   "${CMAKE_CURRENT_LIST_DIR}/tests/sql_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/sqlite_util_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/virtual_table_tests.cpp"

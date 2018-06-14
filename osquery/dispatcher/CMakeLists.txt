@@ -17,7 +17,11 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/scheduler.h"
 )
 
-ADD_OSQUERY_TEST(
+# FIXME: move to osquery test
+ADD_OSQUERY_TABLE_TEST(
   "${CMAKE_CURRENT_LIST_DIR}/tests/scheduler_tests.cpp"
+)
+
+ADD_OSQUERY_TEST(
   "${CMAKE_CURRENT_LIST_DIR}/tests/dispatcher_tests.cpp"
 )

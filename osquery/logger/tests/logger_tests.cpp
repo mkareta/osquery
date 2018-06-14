@@ -156,6 +156,12 @@ TEST_F(LoggerTests, test_logger_init) {
   // which is test.
   EXPECT_EQ(1U, LoggerTests::status_messages.size());
   EXPECT_EQ(1U, LoggerTests::statuses_logged);
+
+  // FIXME
+  // As a workaround for now directly shutdown google logging
+  // That was init by initStatusLogger, since there is no
+  // shutdownStatusLogger, and no way to revert global state back
+  google::ShutdownGoogleLogging();
 }
 
 TEST_F(LoggerTests, test_log_string) {
@@ -430,7 +436,7 @@ class RecursiveLoggerPlugin : public LoggerPlugin {
 
 TEST_F(LoggerTests, test_recursion) {
   // Stop the internal Glog facilities.
-  google::ShutdownGoogleLogging();
+//  google::ShutdownGoogleLogging();
 
   auto& rf = RegistryFactory::get();
   auto plugin = std::make_shared<RecursiveLoggerPlugin>();

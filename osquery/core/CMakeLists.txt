@@ -56,10 +56,15 @@ if (WINDOWS)
   )
 endif()
 
+# FIXME 
+# Use ADD_OSQUERY_TEST after test fix
+ADD_OSQUERY_TABLE_TEST(
+  "${CMAKE_CURRENT_LIST_DIR}/tests/process_tests.cpp"
+)
+
 ADD_OSQUERY_TEST(
   "${CMAKE_CURRENT_LIST_DIR}/tests/conversions_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/flags_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/process_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/query_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/status_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/system_test.cpp"
