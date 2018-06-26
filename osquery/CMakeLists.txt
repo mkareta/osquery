@@ -373,19 +373,21 @@ if(NOT OSQUERY_BUILD_SDK_ONLY AND NOT FUZZ)
       "-- Building osqueryd: $<TARGET_FILE:daemon>"
   )
 
-  set(SHELL_EXECUTABLE "osqueryi")
-  if(WINDOWS)
-    set(SHELL_EXECUTABLE "${SHELL_EXECUTABLE}.exe")
+  if(NOT CMAKE_GENERATOR STREQUAL Xcode)
+    set(SHELL_EXECUTABLE "osqueryi")
+    if(WINDOWS)
+      set(SHELL_EXECUTABLE "${SHELL_EXECUTABLE}.exe")
+    endif()
+
+    add_custom_target(shell ALL
+      COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_FILE:daemon> "$<TARGET_FILE_DIR:daemon>/${SHELL_EXECUTABLE}")
+
+    add_custom_command(
+      TARGET shell POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
+        "-- Creating osqueryi: $<TARGET_FILE_DIR:daemon>/${SHELL_EXECUTABLE}")
   endif()
-
-  add_custom_target(shell ALL
-    COMMAND ${CMAKE_COMMAND} -E copy
-      $<TARGET_FILE:daemon> "$<TARGET_FILE_DIR:daemon>/${SHELL_EXECUTABLE}")
-
-  add_custom_command(
-    TARGET shell POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-      "-- Creating osqueryi: $<TARGET_FILE_DIR:daemon>/${SHELL_EXECUTABLE}")
 
   # This is no longer supported.
   # Include the public API includes if make devel.

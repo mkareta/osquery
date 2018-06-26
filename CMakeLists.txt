@@ -713,47 +713,6 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   include(Packages)
 endif()
 
-# make docs
-add_custom_target(
-  docs
-  COMMAND "${PYTHON_EXECUTABLE}"
-    "${CMAKE_SOURCE_DIR}/tools/codegen/genapi.py" "${CMAKE_SOURCE_DIR}"
-    "--output" "--directory" "${CMAKE_SOURCE_DIR}/build/docs"
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  COMMENT "Generating API documentation with Doxygen/mkdocs" VERBATIM
-)
-
-find_program(DOXYGEN_EXECUTABLE doxygen ENV PATH)
-if(DOXYGEN_EXECUTABLE)
-  add_custom_command(TARGET docs POST_BUILD
-    COMMAND echo "PROJECT_NUMBER=${OSQUERY_BUILD_VERSION}" |
-      cat ${CMAKE_SOURCE_DIR}/Doxyfile - | "${DOXYGEN_EXECUTABLE}" -;
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  )
-else(DEFINED ENV{DOCS})
-  WARNING_LOG("Cannot find Doxygen executable in path")
-endif()
-
-find_program(MKDOCS_EXECUTABLE mkdocs ENV PATH)
-if(MKDOCS_EXECUTABLE)
-  add_custom_command(TARGET docs POST_BUILD
-    COMMAND "${MKDOCS_EXECUTABLE}" build --clean -s
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  )
-elseif(DEFINED ENV{DOCS})
-  WARNING_LOG("Cannot find mkdocs executable in path")
-endif()
-
-# make format-all
-find_program(CLANGFORMAT_EXECUTABLE "clang-format" ENV PATH)
-add_custom_target(
-  format_all
-  find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \)
-    -exec "${CLANGFORMAT_EXECUTABLE}" -i {} +
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  COMMENT "Formatting all osquery code with clang-format" VERBATIM
-)
-
 # make format
 add_custom_target(
   format
@@ -762,11 +721,54 @@ add_custom_target(
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
 
-# make sync
-add_custom_target(
-  sync
-  "${CMAKE_SOURCE_DIR}/tools/sync.sh" "${CMAKE_BINARY_DIR}" "${BUILD_DEPS}/lib:${BUILD_DEPS}/legacy/lib"
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  COMMENT "Generating sdk sync: ${CMAKE_BINARY_DIR}/sync"
-  DEPENDS osquery_extensions osquery_amalgamation
-)
+if(NOT CMAKE_GENERATOR STREQUAL Xcode)
+  # make docs
+  add_custom_target(
+    docs
+    COMMAND "${PYTHON_EXECUTABLE}"
+      "${CMAKE_SOURCE_DIR}/tools/codegen/genapi.py" "${CMAKE_SOURCE_DIR}"
+      "--output" "--directory" "${CMAKE_SOURCE_DIR}/build/docs"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Generating API documentation with Doxygen/mkdocs" VERBATIM
+  )
+
+  find_program(DOXYGEN_EXECUTABLE doxygen ENV PATH)
+  if(DOXYGEN_EXECUTABLE)
+    add_custom_command(TARGET docs POST_BUILD
+      COMMAND echo "PROJECT_NUMBER=${OSQUERY_BUILD_VERSION}" |
+        cat ${CMAKE_SOURCE_DIR}/Doxyfile - | "${DOXYGEN_EXECUTABLE}" -;
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+  else(DEFINED ENV{DOCS})
+    WARNING_LOG("Cannot find Doxygen executable in path")
+  endif()
+
+  find_program(MKDOCS_EXECUTABLE mkdocs ENV PATH)
+  if(MKDOCS_EXECUTABLE)
+    add_custom_command(TARGET docs POST_BUILD
+      COMMAND "${MKDOCS_EXECUTABLE}" build --clean -s
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+  elseif(DEFINED ENV{DOCS})
+    WARNING_LOG("Cannot find mkdocs executable in path")
+  endif()
+
+  # make format-all
+  find_program(CLANGFORMAT_EXECUTABLE "clang-format" ENV PATH)
+  add_custom_target(
+    format_all
+    find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \)
+      -exec "${CLANGFORMAT_EXECUTABLE}" -i {} +
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Formatting all osquery code with clang-format" VERBATIM
+  )
+
+  # make sync
+  add_custom_target(
+    sync
+    "${CMAKE_SOURCE_DIR}/tools/sync.sh" "${CMAKE_BINARY_DIR}" "${BUILD_DEPS}/lib:${BUILD_DEPS}/legacy/lib"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Generating sdk sync: ${CMAKE_BINARY_DIR}/sync"
+    DEPENDS osquery_extensions osquery_amalgamation
+  )
+endif()
