@@ -6,10 +6,21 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
+target_compile_definitions(libosquery
+  PRIVATE
+    "-DROCKSDB_LITE=1"
+)
+
 target_sources(libosquery
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/conversions.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/conversions.h"
+    "${CMAKE_CURRENT_LIST_DIR}/database/database.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/database/database.h"
+    "${CMAKE_CURRENT_LIST_DIR}/database/in_memory_database.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/database/in_memory_database.h"
+    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/database/rocksdb_database.h"
     "${CMAKE_CURRENT_LIST_DIR}/flags.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/hashing.h"
@@ -17,8 +28,8 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/json.h"
     "${CMAKE_CURRENT_LIST_DIR}/process.h"
     "${CMAKE_CURRENT_LIST_DIR}/query.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/system.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/status.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/system.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/tables.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/utils.h"
     "${CMAKE_CURRENT_LIST_DIR}/watcher.cpp"
