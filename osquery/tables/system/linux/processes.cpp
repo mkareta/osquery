@@ -32,6 +32,8 @@
 namespace osquery {
 namespace tables {
 
+const int kMSIn1CLKTCK = (1000 / sysconf(_SC_CLK_TCK));
+
 inline std::string getProcAttr(const std::string& attr,
                                const std::string& pid) {
   return "/proc/" + pid + "/" + attr;
@@ -255,11 +257,7 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
     this->system_time = details.at(12);
     this->nice = details.at(16);
     this->threads = details.at(17);
-    try {
-      this->start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
-    } catch (const boost::bad_lexical_cast& e) {
-      this->start_time = "-1";
-    }
+    this->start_time = TEXT(std::stol(details.at(19)) / 100);
   }
 
   // /proc/N/status may be not available, or readable by this user.
@@ -437,8 +435,10 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["total_size"] = proc_stat.total_size;
 
   // time information
-  r["user_time"] = proc_stat.user_time;
-  r["system_time"] = proc_stat.system_time;
+  auto usr_time = std::strtoull(proc_stat.user_time.data(), nullptr, 10);
+  r["user_time"] = std::to_string(usr_time * kMSIn1CLKTCK);
+  auto sys_time = std::strtoull(proc_stat.system_time.data(), nullptr, 10);
+  r["system_time"] = std::to_string(sys_time * kMSIn1CLKTCK);
   r["start_time"] = proc_stat.start_time;
 
   if (!proc_io.status.ok()) {
