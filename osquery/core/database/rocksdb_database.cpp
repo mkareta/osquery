@@ -21,6 +21,8 @@ DECLARE_uint64(rocksdb_buffer_blocks);
 static const int kLogMessageBufferSize = 512;
 static const int kMaxLogMessageBufferSize = 65536;
 
+static const int8_t kIntTag = 0x1;
+
 class RocksDBLogger : public rocksdb::Logger {
  public:
   using rocksdb::Logger::Logv;
@@ -134,8 +136,8 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::openInternal(const rocksdb::Opti
   rocksdb::DB* raw_db_handle = nullptr;
   auto open_status = rocksdb::DB::Open(options, db_path.string(), column_families, &raw_handles, &raw_db_handle);
   if (open_status.IsCorruption()) {
-    return createError(DatabaseError::DatabaseIsCorrupted,
-                       "database is corrrupted: ") << open_status.ToString();
+    auto corruptionError = createError(RocksdbError::DatabaseIsCorrupted, open_status.ToString());
+    return createError(DatabaseError::Panic, "database is corrrupted", std::move(corruptionError));
   }
   if (!open_status.ok()) {
     return createError(DatabaseError::FailToOpenDatabase,
@@ -173,11 +175,36 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::checkDbConnection() {
   return Success();
 }
 
-Expected<std::string, DatabaseError> RocksdbDatabase::getStringInternal(rocksdb::ColumnFamilyHandle *handle, const std::string& key) {
+Expected<std::string, DatabaseError> RocksdbDatabase::getRawBytes(const std::string& domain, const std::string& key) {
+  auto handle = getHandle(domain);
+  if (handle) {
+    std::shared_ptr<rocksdb::ColumnFamilyHandle> handle_ptr = handle.take();
+    return getRawBytesInternal(handle_ptr.get(), key);
+  }
+  return handle.takeError();
+}
+
+ExpectedSuccess<DatabaseError> RocksdbDatabase::putRawBytes(const std::string& domain, const std::string& key, const std::string &value) {
+  auto handle = getHandle(domain);
+  if (handle) {
+    std::shared_ptr<rocksdb::ColumnFamilyHandle> handle_ptr = handle.take();
+    return putRawBytesInternal(handle_ptr.get(), key, value);
+  }
+  return handle.takeError();
+}
+
+Expected<std::string, DatabaseError> RocksdbDatabase::getRawBytesInternal(rocksdb::ColumnFamilyHandle *handle, const std::string& key) {
   std::string value = "";
   auto status = db_->Get(default_read_options_, handle, key, &value);
   if (status.IsNotFound()) {
-    return createError(DatabaseError::NotFound, "Value not found");
+    return createError(DatabaseError::KeyNotFound, "Value not found");
+  }
+  if (status.IsCorruption()) {
+    in_panic_ = true;
+    auto corruption_error = createError(RocksdbError::DatabaseIsCorrupted, status.ToString());
+    auto error = createError(DatabaseError::Panic, "", std::move(corruption_error));
+    panic(error);
+    return std::move(error);
   }
   if (!status.ok()) {
     return createError(DatabaseError::FailToReadData, status.ToString());
@@ -185,7 +212,7 @@ Expected<std::string, DatabaseError> RocksdbDatabase::getStringInternal(rocksdb:
   return value;
 }
 
-ExpectedSuccess<DatabaseError> RocksdbDatabase::putStringInternal(rocksdb::ColumnFamilyHandle *handle, const std::string& key, const std::string& value) {
+ExpectedSuccess<DatabaseError> RocksdbDatabase::putRawBytesInternal(rocksdb::ColumnFamilyHandle *handle, const std::string& key, const std::string& value) {
   auto status = db_->Put(default_write_options_, handle, key, value);
   if (!status.ok()) {
     createError(DatabaseError::FailToWriteData, status.ToString());
@@ -194,65 +221,90 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::putStringInternal(rocksdb::Colum
 }
 
 Expected<std::shared_ptr<rocksdb::ColumnFamilyHandle>, DatabaseError> RocksdbDatabase::getHandle(const std::string &domain) {
+  if (BOOST_UNLIKELY(in_panic_)) {
+    return createError(DatabaseError::Panic, "Database is in panic mode :(");
+  }
   if (BOOST_UNLIKELY(db_ == nullptr)) {
     return createError(DatabaseError::DatabaseIsNotOpen, "Database is closed");
   }
   auto handle = handles_map_.find(domain);
   if (BOOST_UNLIKELY(handle == handles_map_.end())) {
     assert(false && "Unknown database domain");
-    return createError(DatabaseError::UnknownDomain, "Unknown database domain");
+    return createError(DatabaseError::DomainNotFound, "Unknown database domain");
   }
-
+  return handle->second;
 }
 
 Expected<std::string, DatabaseError> RocksdbDatabase::getString(const std::string& domain, const std::string& key) {
-  auto dbCheck = checkDbConnection();
-
-  if (BOOST_UNLIKELY(!dbCheck)) {
-    return dbCheck.takeError();
+  auto result = getRawBytes(domain, key);
+  if (result) {
+    std::string result_str = result.take();
+#ifdef DEBUG
+    // This check is not 100% reliable so run it only in debug
+    if (result_str.size() == sizeof(int32_t) + sizeof(int8_t) &&
+        result_str.back() == kIntTag) {
+      auto type_error = createError(RocksdbError::UnexpectedValueType, "Fetching string as integer");
+      assert(false && type_error.getFullMessageRecursive().c_str());
+      return createError(DatabaseError::KeyNotFound, "", std::move(type_error));
+    }
+#endif
+    return result;
   }
-
-  auto handle = handles_map_.find(domain);
-  if (BOOST_UNLIKELY(handle == handles_map_.end())) {
-    assert(false && "Unknown database domain");
-    return createError(DatabaseError::UnknownDomain, "Unknown database domain");
-  }
-  return getStringInternal(handle->second.get(), key);
+  return result.takeError();
 }
 
 ExpectedSuccess<DatabaseError> RocksdbDatabase::putString(const std::string& domain, const std::string& key, const std::string& value) {
-  auto dbCheck = checkDbConnection();
-
-  if (BOOST_UNLIKELY(!dbCheck)) {
-    return dbCheck.takeError();
+  auto result = putRawBytes(domain, key, value);
+  if (result) {
+    return Success();
   }
-  auto handle = handles_map_.find(domain);
-  if (BOOST_UNLIKELY(handle == handles_map_.end())) {
-    assert(false && "Unknown database domain");
-    return createError(DatabaseError::UnknownDomain, "Unknown database domain");
-  }
-  return putStringInternal(handle->second.get(), key, value);
+  return result.takeError();
 }
 
-Expected<int, DatabaseError> RocksdbDatabase::getInt(const std::string& domain, const std::string& key) {
-  Expected<std::string, DatabaseError> buffer = getString(domain, key);
+Expected<int, DatabaseError> RocksdbDatabase::getInt32(const std::string& domain, const std::string& key) {
+  Expected<std::string, DatabaseError> buffer = getRawBytes(domain, key);
   if (buffer) {
     std::string value = buffer.take();
-    int result = *(reinterpret_cast<const int *>(value.data()));
-    return ntohl(result);
+    if (BOOST_LIKELY(value.back() == kIntTag)) {
+      int result = *(reinterpret_cast<const int *>(value.data()));
+      return ntohl(result);
+    } else {
+      auto type_error = createError(RocksdbError::UnexpectedValueType, "Fetching string as integer");
+      auto error = createError(DatabaseError::KeyNotFound, "", std::move(type_error));
+      assert(false && error.getFullMessageRecursive().c_str());
+      LOG(ERROR) << error.getFullMessageRecursive();
+      return std::move(error);
+    }
   }
   return buffer.takeError();
 }
 
-ExpectedSuccess<DatabaseError> RocksdbDatabase::putInt(const std::string& domain, const std::string& key, const int value) {
+ExpectedSuccess<DatabaseError> RocksdbDatabase::putInt32(const std::string& domain, const std::string& key, const int32_t value) {
   int tmp_value = htonl(value);
-  std::string buffer(reinterpret_cast<const char *>(&tmp_value), 4);
+  std::string buffer;
+  buffer.reserve(sizeof(int32_t) + sizeof(int8_t));
+  buffer.append(reinterpret_cast<const char *>(&tmp_value), 4);
+  buffer.append(reinterpret_cast<const char *>(&kIntTag), 1);
   return putString(domain, key, buffer);
 }
 
 template <typename Func>
-ExpectedSuccess<DatabaseError> enumarateDomain(const std::string& domain, Func function) {
+ExpectedSuccess<DatabaseError> RocksdbDatabase::enumarateDomain(const std::string& domain, Func function) {
+  auto handle = getHandle(domain);
+  if (handle) {
+    std::shared_ptr<rocksdb::ColumnFamilyHandle> handle_ptr = handle.take();
+    auto iter = std::unique_ptr<rocksdb::Iterator>(db_->NewIterator(default_read_options_, handle_ptr.get()));
 
+    for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
+      if (iter->status().ok()) {
+        auto key = iter->key().ToString();
+        auto value = iter->value().data();
+        function(key, value);
+      }
+    }
+    return Success();
+  }
+  return handle.takeError();
 }
 
 }

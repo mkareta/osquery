@@ -10,23 +10,30 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include <osquery/error.h>
 #include <osquery/expected.h>
 
 namespace osquery {
 
 enum class DatabaseError {
+  // Unknown error, currently unused
   Unknown = 1,
-  FailToReadValue = 2,
+  DatabaseIsNotOpen = 2,
   DatabasePathDoesNotExists = 3,
-  DatabaseIsCorrupted = 4,
+  FailToDestroyDB = 4,
   FailToOpenDatabase = 5,
-  FailToDestroyDB = 6,
-  DatabaseIsNotOpen = 7,
-  UnknownDomain = 8,
-  FailToReadData = 9,
-  FailToWriteData = 10,
-  NotFound = 11,
+  FailToReadData = 6,
+  FailToWriteData = 7,
+  KeyNotFound = 8,
+  DomainNotFound = 9,
+  // Corruption or other unrecoverable error after DB can't be longer used
+  // Database should be closed, destroyed and opened again
+  // If this error returing during data access then aplication,
+  // is likely to die soon after it
+  // See message and/or underlying error for details
+  Panic = 10,
 };
 
 class Database {
@@ -39,15 +46,18 @@ public:
   virtual void close() = 0;
 
   // Return default value in case of NotFound error
-  Expected<int, DatabaseError> getIntOr(const std::string& domain, const std::string& key, const int default_value = 0);
+  Expected<int32_t, DatabaseError> getInt32Or(const std::string& domain, const std::string& key, const int32_t default_value = 0);
   Expected<std::string, DatabaseError> getStringOr(const std::string& domain, const std::string& key, const std::string default_value = "");
 
-  virtual Expected<int, DatabaseError> getInt(const std::string& domain, const std::string& key);
+  virtual Expected<int32_t, DatabaseError> getInt32(const std::string& domain, const std::string& key);
   virtual Expected<std::string, DatabaseError> getString(const std::string& domain, const std::string& key) = 0;
 
-  virtual ExpectedSuccess<DatabaseError> putInt(const std::string& domain, const std::string& key, const int value);
+  virtual ExpectedSuccess<DatabaseError> putInt32(const std::string& domain, const std::string& key, const int32_t value);
   virtual ExpectedSuccess<DatabaseError> putString(const std::string& domain, const std::string& key, const std::string& value) = 0;
 
+  void panic(const Error<DatabaseError>& error) {
+    assert(false && error.getFullMessageRecursive().c_str());
+  }
 };
 
 }

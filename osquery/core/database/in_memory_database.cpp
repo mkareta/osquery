@@ -38,7 +38,7 @@ Expected<T, DatabaseError> InMemoryDatabase::getValueFromStorage(const std::unor
   assert(is_open_ && "database is not open");
   auto storage_iter = storage.find(domain);
   if (storage_iter == storage.end()) {
-    return createError(DatabaseError::UnknownDomain, "Can't find domain: ") << domain;
+    return createError(DatabaseError::DomainNotFound, "Can't find domain: ") << domain;
   }
   return storage_iter->second->get(key);
 }
@@ -48,7 +48,7 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::putValueToStorage(const std::un
   assert(is_open_ && "database is not open");
   auto storage_iter = storage.find(domain);
   if (storage_iter == storage.end()) {
-    return createError(DatabaseError::UnknownDomain, "Can't find domain: ") << domain;
+    return createError(DatabaseError::DomainNotFound, "Can't find domain: ") << domain;
   }
   storage_iter->second->put(key, value);
   return Success();
@@ -62,11 +62,11 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::putString(const std::string& do
   return putValueToStorage(string_storage_, domain, key, value);
 }
 
-Expected<int, DatabaseError> InMemoryDatabase::getInt(const std::string& domain, const std::string& key) {
+Expected<int, DatabaseError> InMemoryDatabase::getInt32(const std::string& domain, const std::string& key) {
   return getValueFromStorage(int_storage_, domain, key);
 }
 
-ExpectedSuccess<DatabaseError> InMemoryDatabase::putInt(const std::string& domain, const std::string& key, const int value) {
+ExpectedSuccess<DatabaseError> InMemoryDatabase::putInt32(const std::string& domain, const std::string& key, const int32_t value) {
   return putValueToStorage(int_storage_, domain, key, value);
 }
 

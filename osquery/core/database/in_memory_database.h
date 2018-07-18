@@ -27,7 +27,7 @@ public:
     if (iter != storage_.end()) {
       return iter->second;
     }
-    return createError(DatabaseError::NotFound, "Can't find value for key ") << key;
+    return createError(DatabaseError::KeyNotFound, "Can't find value for key ") << key;
   }
 private:
   std::unordered_map<std::string, StorageType> storage_;
@@ -44,13 +44,11 @@ public:
   void close() override;
 
   //Low level access
-  Expected<int, DatabaseError> getInt(const std::string& domain, const std::string& key) override;
+  Expected<int32_t, DatabaseError> getInt32(const std::string& domain, const std::string& key) override;
   Expected<std::string, DatabaseError> getString(const std::string& domain, const std::string& key) override;
 
-  ExpectedSuccess<DatabaseError> putInt(const std::string& domain, const std::string& key, const int value) override;
+  ExpectedSuccess<DatabaseError> putInt32(const std::string& domain, const std::string& key, const int32_t value) override;
   ExpectedSuccess<DatabaseError> putString(const std::string& domain, const std::string& key, const std::string& value) override;
-
-
 
 private:
   template<typename T>
@@ -60,7 +58,7 @@ private:
 private:
   bool is_open_;
   std::unordered_map<std::string, std::unique_ptr<InMemoryStorage<std::string>>> string_storage_;
-  std::unordered_map<std::string, std::unique_ptr<InMemoryStorage<int>>> int_storage_;
+  std::unordered_map<std::string, std::unique_ptr<InMemoryStorage<int32_t>>> int_storage_;
 };
 
 }
