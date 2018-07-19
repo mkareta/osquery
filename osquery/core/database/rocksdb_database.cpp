@@ -164,6 +164,8 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::open(const std::string& path) {
   default_read_options_ = rocksdb::ReadOptions();
   default_read_options_.verify_checksums = false;
   default_write_options_ = rocksdb::WriteOptions();
+  batch_write_options_ = rocksdb::WriteOptions();
+  batch_write_options_.disableWAL = true;
   return openInternal(options, db_path);
 }
 
@@ -273,6 +275,9 @@ Expected<int, DatabaseError> RocksdbDatabase::getInt32(const std::string& domain
       auto error = createError(DatabaseError::KeyNotFound, "", std::move(type_error));
       assert(false && error.getFullMessageRecursive().c_str());
       LOG(ERROR) << error.getFullMessageRecursive();
+#ifdef DEBUG
+      assert(false && error.getFullMessageRecursive().c_str());
+#endif
       return std::move(error);
     }
   }
@@ -288,23 +293,61 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::putInt32(const std::string& doma
   return putString(domain, key, buffer);
 }
 
-template <typename Func>
-ExpectedSuccess<DatabaseError> RocksdbDatabase::enumarateDomain(const std::string& domain, Func function) {
+ExpectedSuccess<DatabaseError> RocksdbDatabase::putStringsUnsafe(const std::string& domain, std::vector<std::pair<std::string, std::string>>& data) {
+  auto handle = getHandle(domain);
+  if (handle) {
+    std::shared_ptr<rocksdb::ColumnFamilyHandle> handle_ptr = handle.take();
+    rocksdb::WriteBatch batch;
+
+    for (const auto& pair : data) {
+      auto status = batch.Put(handle_ptr.get(), pair.first, pair.second);
+      if (!status.ok()) {
+        auto batch_write_error = createError(RocksdbError::BatchWriteFail, status.ToString());
+        return createError(DatabaseError::FailToWriteData, "Failed to write data", std::move(batch_write_error));
+      }
+    }
+    auto status = db_->Write(batch_write_options_, &batch);
+    if (!status.ok()) {
+      return createError(DatabaseError::FailToWriteData, status.ToString());
+    }
+  }
+  return handle.takeError();
+}
+
+//template <typename Func>
+//ExpectedSuccess<DatabaseError> RocksdbDatabase::enumarateDomain(const std::string& domain, Func function) {
+//  auto handle = getHandle(domain);
+//  if (handle) {
+//    std::shared_ptr<rocksdb::ColumnFamilyHandle> handle_ptr = handle.take();
+//    auto iter = std::unique_ptr<rocksdb::Iterator>(db_->NewIterator(default_read_options_, handle_ptr.get()));
+//
+//    for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
+//      if (iter->status().ok()) {
+//        auto key = iter->key().ToString();
+//        auto value = iter->value().data();
+//        function(key, value);
+//      }
+//    }
+//    return Success();
+//  }
+//  return handle.takeError();
+//}
+
+Expected<std::vector<std::string>, DatabaseError> RocksdbDatabase::getKeys(const std::string& domain, const std::string& prefix) {
   auto handle = getHandle(domain);
   if (handle) {
     std::shared_ptr<rocksdb::ColumnFamilyHandle> handle_ptr = handle.take();
     auto iter = std::unique_ptr<rocksdb::Iterator>(db_->NewIterator(default_read_options_, handle_ptr.get()));
 
+    std::vector<std::string> result;
     for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
       if (iter->status().ok()) {
         auto key = iter->key().ToString();
-        auto value = iter->value().data();
-        function(key, value);
+        result.push_back(std::move(key));
       }
     }
-    return Success();
+    return result;
   }
   return handle.takeError();
 }
-
 }

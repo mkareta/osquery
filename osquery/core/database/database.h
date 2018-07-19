@@ -55,10 +55,17 @@ public:
   virtual ExpectedSuccess<DatabaseError> putInt32(const std::string& domain, const std::string& key, const int32_t value);
   virtual ExpectedSuccess<DatabaseError> putString(const std::string& domain, const std::string& key, const std::string& value) = 0;
 
+  virtual Expected<std::vector<std::string>, DatabaseError> getKeys(const std::string& domain, const std::string& prefix = "") = 0;
+
+  // This function designed to write batch of data as one operation and get
+  // as much performance as possbile. Becuase of this, db may not guarantee
+  // data consistency or atomic nature of operation
+  // Please see actual function implementaion for details and limitations
+  virtual ExpectedSuccess<DatabaseError> putStringsUnsafe(const std::string& domain, std::vector<std::pair<std::string, std::string>>& data) = 0;
+  
   void panic(const Error<DatabaseError>& error) {
     assert(false && error.getFullMessageRecursive().c_str());
   }
 };
 
 }
-

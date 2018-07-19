@@ -23,6 +23,7 @@ namespace osquery {
 enum class RocksdbError {
   UnexpectedValueType = 1,
   DatabaseIsCorrupted = 2,
+  BatchWriteFail = 3,
 };
 
 class RocksdbDatabase final : public Database {
@@ -42,16 +43,20 @@ public:
   ExpectedSuccess<DatabaseError> putInt32(const std::string& domain, const std::string& key, const int32_t value) override;
   ExpectedSuccess<DatabaseError> putString(const std::string& domain, const std::string& key, const std::string& value) override;
 
-public: // Migration support
-  // Raw bytes API, intented for usage during DB migration
-  Expected<std::string, DatabaseError> getRawBytes(const std::string& domain, const std::string& key);
-  ExpectedSuccess<DatabaseError> putRawBytes(const std::string& domain, const std::string& key, const std::string &value);
+  Expected<std::vector<std::string>, DatabaseError> getKeys(const std::string& domain, const std::string& prefix) override;
 
-  // Function will be called with key/value pair, where value is raw bytes
-  // caller should know how parse value
-  // Func: void(const std::string& key, const char *data);
-  template <typename Func>
-  ExpectedSuccess<DatabaseError> enumarateDomain(const std::string& domain, Func function);
+  // This function should be used only as optimization
+  // This write operation will not use neither sync or WAL, so date lose
+  // may happen in case of failure, but opertaion itself is still atomic
+  ExpectedSuccess<DatabaseError> putStringsUnsafe(const std::string& domain, std::vector<std::pair<std::string, std::string>>& data) override;
+public:
+//  // Raw bytes API, intented for usage during DB migration
+//
+//  // Function will be called with key/value pair, where value is raw bytes
+//  // caller should know how parse value
+//  // Func: void(const std::string& key, const char *data);
+//  template <typename Func>
+//  ExpectedSuccess<DatabaseError> enumarateDomain(const std::string& domain, Func function);
 
 private:
   rocksdb::Options getOptions();
@@ -61,11 +66,15 @@ private:
   ExpectedSuccess<DatabaseError> putRawBytesInternal(rocksdb::ColumnFamilyHandle *handle, const std::string& key, const std::string& value);
   ExpectedSuccess<DatabaseError> checkDbConnection();
   Expected<std::shared_ptr<rocksdb::ColumnFamilyHandle>, DatabaseError> getHandle(const std::string &domain);
+
+  Expected<std::string, DatabaseError> getRawBytes(const std::string& domain, const std::string& key);
+  ExpectedSuccess<DatabaseError> putRawBytes(const std::string& domain, const std::string& key, const std::string &value);
 private:
 
   bool in_panic_ = false;
   rocksdb::ReadOptions default_read_options_;
   rocksdb::WriteOptions default_write_options_;
+  rocksdb::WriteOptions batch_write_options_;
   std::unique_ptr<rocksdb::DB> db_ = nullptr;
   std::unordered_map<std::string, std::shared_ptr<rocksdb::ColumnFamilyHandle>> handles_map_;
 };

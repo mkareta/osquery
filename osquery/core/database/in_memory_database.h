@@ -11,6 +11,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <boost/variant.hpp>
 
 #include <osquery/core/database/database.h>
 
@@ -29,8 +30,19 @@ public:
     }
     return createError(DatabaseError::KeyNotFound, "Can't find value for key ") << key;
   }
+  std::vector<std::string> getKeys(const std::string& prefix = "") {
+    std::vector<std::string> result;
+    for (const auto& iter : storage_) {
+      result.push_back(iter.first);
+    }
+    return result;
+  }
+  std::mutex& getMutex() {
+    return mutex_;
+  }
 private:
   std::unordered_map<std::string, StorageType> storage_;
+  std::mutex mutex_;
 };
 
 class InMemoryDatabase final : public Database {
@@ -50,15 +62,19 @@ public:
   ExpectedSuccess<DatabaseError> putInt32(const std::string& domain, const std::string& key, const int32_t value) override;
   ExpectedSuccess<DatabaseError> putString(const std::string& domain, const std::string& key, const std::string& value) override;
 
+  Expected<std::vector<std::string>, DatabaseError> getKeys(const std::string& domain, const std::string& prefix = "") override;
+
+  ExpectedSuccess<DatabaseError> putStringsUnsafe(const std::string& domain, std::vector<std::pair<std::string, std::string>>& data) override;
 private:
   template<typename T>
-  Expected<T, DatabaseError> getValueFromStorage(const std::unordered_map<std::string, std::unique_ptr<InMemoryStorage<T>>> &storage, const std::string& domain, const std::string& key);
+  Expected<T, DatabaseError> getValue(const std::string& domain, const std::string& key);
   template<typename T>
-  ExpectedSuccess<DatabaseError> putValueToStorage(const std::unordered_map<std::string, std::unique_ptr<InMemoryStorage<T>>> &storage, const std::string& domain, const std::string& key, const T& value);
+  ExpectedSuccess<DatabaseError> putValue(const std::string& domain, const std::string& key, const T& value);
+
+  Error<DatabaseError> domainNotFoundError(const std::string& domain);
 private:
   bool is_open_;
-  std::unordered_map<std::string, std::unique_ptr<InMemoryStorage<std::string>>> string_storage_;
-  std::unordered_map<std::string, std::unique_ptr<InMemoryStorage<int32_t>>> int_storage_;
+  std::unordered_map<std::string, std::unique_ptr<InMemoryStorage<boost::variant<std::string, int32_t>>>> storage_;
 };
 
 }
