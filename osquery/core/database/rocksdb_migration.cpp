@@ -44,10 +44,69 @@ RocksdbMigration::RocksdbMigration(const std::string& path) {
 }
 
 ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateIfNeeded() {
-  
+  auto open_result = openDatabase(source_path_, false, false);
+  if (open_result) {
+    auto db_handle = open_result.take();
+    auto version_result = getVersion(db_handle);
+    if (version_result) {
+      int version = version_result.take();
+      if (version != kDatabaseSchemaVersionCurrent) {
+        migrateFromVersion(version);
+      } else {
+        return Success();
+      }
+    } else {
+      return createError(RocksdbMigrationError::FailToMigrate, "", version_result.takeError());
+    }
+  } else {
+    // InvalidArgument means that db does not exists
+    if (open_result.getErrorCode() == RocksdbMigrationError::InvalidArgument) {
+      return Success();
+    } else {
+      return createError(RocksdbMigrationError::FailToMigrate, "", open_result.takeError());
+    }
+  }
   return Success();
 }
 
+void RocksdbMigration::buildMigrationMap() {
+  migration_map_[kDatabaseSchemaV2] = [](const std::string& src, const std::string& dst) -> Expected<int, RocksdbMigrationError> {
+    return -1;
+  };
+}
+
+ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateFromVersion(int version) {
+  buildMigrationMap();
+  std::string src_path = source_path_;
+  std::string dst_path = randomOutputPath();
+  bool drop_src_data = false;
+  for (int i = version; i < kDatabaseSchemaVersionCurrent;) {
+    auto iter = migration_map_.find(i);
+    if (iter == migration_map_.end()) {
+      auto error = createError(RocksdbMigrationError::NoMigrationFromCurrentVersion, "version: ") << version;
+      return createError(RocksdbMigrationError::FailToMigrate, "", std::move(error));
+    }
+    auto migration_result = iter->second(src_path, dst_path);
+    if (migration_result) {
+      int new_version = migration_result.take();
+      if (new_version <= version) {
+        auto error = createError(RocksdbMigrationError::MigrationLogicError, "Migrated from: ") << version << " To: " << new_version;
+        return createError(RocksdbMigrationError::FailToMigrate, "", std::move(error));
+      }
+      version = new_version;
+    } else {
+      return createError(RocksdbMigrationError::FailToMigrate, "", migration_result.takeError());
+    }
+    if (drop_src_data) {
+      rocksdb::DestroyDB(src_path, rocksdb::Options());
+    }
+    drop_src_data = true;
+    src_path = dst_path;
+    dst_path = randomOutputPath();
+  }
+  return Success();
+}
+  
 Expected<RocksdbMigration::DatabaseHandle, RocksdbMigrationError> RocksdbMigration::openDatabase(const std::string& path, bool create_if_missing, bool error_if_exists) {
   DatabaseHandle handle;
   handle.options.OptimizeForSmallDb();

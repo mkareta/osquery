@@ -11,22 +11,25 @@
 #pragma once
 
 #include <osquery/expected.h>
-
 #include <rocksdb/db.h>
 
+#include <unordered_map>
 
 namespace osquery {
 
 enum DatabaseSchemaVersion {
-  kDatabaseSchema3_2 = 1,
-  kDatabaseSchema3_3 = 2,
-  kDatabaseSchemaVersionCurrent = kDatabaseSchemaVersion2,
-}
+  kDatabaseSchemaV2 = 2,
+  kDatabaseSchemaV3 = 3,
+  kDatabaseSchemaVersionCurrent = kDatabaseSchemaV3,
+};
 
 enum class RocksdbMigrationError {
   InvalidArgument = 1,
   FailToOpen = 2,
   FailToGetVersion = 3,
+  FailToMigrate = 4,
+  NoMigrationFromCurrentVersion = 5,
+  MigrationLogicError = 6,
 };
 
 class RocksdbMigration final {
@@ -44,9 +47,15 @@ private:
   DatabaseHandle output_db_;
 
   std::string source_path_;
+  std::unordered_map<int, std::function<Expecte<int, RocksdbMigrationError>(const std::string& src, const std::string& dst)>> migration_map_;
 private:
   Expected<DatabaseHandle, RocksdbMigrationError> openDatabase(const std::string& path, bool create_if_missing, bool error_if_exists);
   Expected<int, RocksdbMigrationError> getVersion(const DatabaseHandle& db);
+  ExpectedSuccess<RocksdbMigrationError> migrateFromVersion(int version);
+  
+  void buildMigrationMap();
+
+  std::string randomOutputPath();
 
   ExpectedSuccess<RocksdbMigrationError> migrateIfNeeded();
 
