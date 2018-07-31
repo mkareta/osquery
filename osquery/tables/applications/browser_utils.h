@@ -14,7 +14,6 @@
 #pragma warning(push, 3)
 #pragma warning(disable : 4715)
 #endif
-#include <boost/property_tree/json_parser.hpp>
 #ifdef WIN32
 #pragma warning(pop)
 #endif
@@ -24,7 +23,6 @@
 #include <osquery/tables.h>
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
@@ -35,7 +33,7 @@ QueryData genChromeBasedExtensions(QueryContext& context,
 /// A helper check to rename bool-type values as 1 or 0.
 inline void jsonBoolAsInt(std::string& s) {
   auto expected = tryTo<bool>(s);
-  if (!expected.isError()) {
+  if (expected.isValue()) {
     s = expected.get() ? "1" : "0";
   }
 }

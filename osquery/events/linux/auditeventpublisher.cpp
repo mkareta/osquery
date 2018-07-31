@@ -93,9 +93,6 @@ Status AuditEventPublisher::run() {
   // records
   auto event_count_estimate = audit_event_record_queue.size() / 4U;
   event_context->audit_events.reserve(event_count_estimate);
-  if (event_context->audit_events.capacity() != event_count_estimate) {
-    return Status(1, "Memory allocation failure");
-  }
 
   ProcessEvents(event_context, audit_event_record_queue, audit_trace_context_);
   if (!event_context->audit_events.empty()) {
@@ -288,12 +285,7 @@ void AuditEventPublisher::ProcessEvents(
     if (timestamp_it == timestamp_cache.end()) {
       std::string string_timestamp = audit_event_id.substr(0, 10);
 
-      long long int converted_value;
-      if (!safeStrtoll(string_timestamp, 10, converted_value)) {
-        event_timestamp = 0;
-      } else {
-        event_timestamp = static_cast<std::time_t>(converted_value);
-      }
+      event_timestamp = tryTo<long long>(string_timestamp).takeOr(0ll);
 
       timestamp_cache[audit_event_id] = event_timestamp;
 
@@ -348,15 +340,9 @@ bool GetIntegerFieldFromMap(std::uint64_t& value,
     value = default_value;
     return false;
   }
-
-  long long temp;
-  if (!safeStrtoll(string_value, base, temp)) {
-    value = default_value;
-    return false;
-  }
-
-  value = static_cast<std::uint64_t>(temp);
-  return true;
+  auto exp = tryTo<std::uint64_t>(string_value, base);
+  value = exp.getOr(default_value);
+  return exp.isValue();
 }
 
 void CopyFieldFromMap(Row& row,

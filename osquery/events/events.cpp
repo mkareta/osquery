@@ -52,11 +52,7 @@ FLAG(uint64, events_max, 50000, "Maximum number of events per type to buffer");
 
 static inline EventTime timeFromRecord(const std::string& record) {
   // Convert a stored index "as string bytes" to a time value.
-  long long afinite;
-  if (!safeStrtoll(record, 10, afinite)) {
-    return 0;
-  }
-  return afinite;
+  return static_cast<EventTime>(tryTo<long long>(record).takeOr(0ll));
 }
 
 static inline std::string toIndex(size_t i) {
@@ -82,17 +78,13 @@ static inline void getOptimizeData(EventTime& o_time,
   {
     std::string content;
     getDatabaseValue(kEvents, "optimize." + query_name, content);
-    long long optimize_time = 0;
-    safeStrtoll(content, 10, optimize_time);
-    o_time = static_cast<EventTime>(optimize_time);
+    o_time = timeFromRecord(content);
   }
 
   {
     std::string content;
     getDatabaseValue(kEvents, "optimize_eid." + query_name, content);
-    long long optimize_eid = 0;
-    safeStrtoll(content, 10, optimize_eid);
-    o_eid = static_cast<size_t>(optimize_eid);
+    o_eid = tryTo<std::size_t>(content).getOr(std::size_t{0});
   }
 }
 
@@ -438,9 +430,6 @@ Status EventSubscriberPlugin::recordEvents(
 
   DatabaseStringValueList database_data;
   database_data.reserve(event_id_list.size());
-  if (database_data.capacity() != event_id_list.size()) {
-    return Status(1, "Memory allocation error");
-  }
 
   std::string index_key = "indexes." + dbNamespace() + ".60";
   std::string record_key = "records." + dbNamespace() + ".60.";
@@ -590,15 +579,9 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
                                        EventTime custom_event_time) {
   DatabaseStringValueList database_data;
   database_data.reserve(row_list.size());
-  if (database_data.capacity() != row_list.size()) {
-    return Status(1, "Memory allocation error");
-  }
 
   std::vector<std::string> event_id_list;
   event_id_list.reserve(row_list.size());
-  if (event_id_list.capacity() != row_list.size()) {
-    return Status(1, "Memory allocation error");
-  }
 
   auto event_time = custom_event_time != 0 ? custom_event_time : getUnixTime();
   auto event_time_str = std::to_string(event_time);
@@ -797,6 +780,7 @@ Status EventFactory::run(const std::string& type_id) {
   } else if (publisher->hasStarted()) {
     return Status(1, "Cannot restart an event publisher");
   }
+  setThreadName(publisher->name());
   VLOG(1) << "Starting event publisher run loop: " + type_id;
   publisher->hasStarted(true);
 

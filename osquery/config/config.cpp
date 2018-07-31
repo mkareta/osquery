@@ -268,8 +268,8 @@ void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist) {
   size_t current_time = getUnixTime();
   for (size_t i = 0; i < blacklist_pairs.size() / 2; i++) {
     // Fill in a mapping of query name to time the blacklist expires.
-    long long expire = 0;
-    safeStrtoll(blacklist_pairs[(i * 2) + 1], 10, expire);
+    auto expire =
+        tryTo<long long>(blacklist_pairs[(i * 2) + 1], 10).takeOr(0ll);
     if (expire > 0 && current_time < (size_t)expire) {
       blacklist[blacklist_pairs[(i * 2)]] = (size_t)expire;
     }
@@ -842,24 +842,28 @@ void Config::recordQueryPerformance(const std::string& name,
 
   // Grab access to the non-const schedule item.
   auto& query = performance_.at(name);
-  BIGINT_LITERAL diff = 0;
   if (!r1.at("user_time").empty() && !r0.at("user_time").empty()) {
-    diff = std::stoll(r1.at("user_time")) - std::stoll(r0.at("user_time"));
+    auto ut1 = tryTo<long long>(r1.at("user_time"));
+    auto ut0 = tryTo<long long>(r0.at("user_time"));
+    auto diff = (ut1 && ut0) ? ut1.take() - ut0.take() : 0;
     if (diff > 0) {
       query.user_time += diff;
     }
   }
 
   if (!r1.at("system_time").empty() && !r0.at("system_time").empty()) {
-    diff = std::stoll(r1.at("system_time")) - std::stoll(r0.at("system_time"));
+    auto st1 = tryTo<long long>(r1.at("system_time"));
+    auto st0 = tryTo<long long>(r0.at("system_time"));
+    auto diff = (st1 && st0) ? st1.take() - st0.take() : 0;
     if (diff > 0) {
       query.system_time += diff;
     }
   }
 
   if (!r1.at("resident_size").empty() && !r0.at("resident_size").empty()) {
-    diff =
-        std::stoll(r1.at("resident_size")) - std::stoll(r0.at("resident_size"));
+    auto rs1 = tryTo<long long>(r1.at("resident_size"));
+    auto rs0 = tryTo<long long>(r0.at("resident_size"));
+    auto diff = (rs1 && rs0) ? rs1.take() - rs0.take() : 0;
     if (diff > 0) {
       // Memory is stored as an average of RSS changes between query executions.
       query.average_memory = (query.average_memory * query.executions) + diff;
@@ -970,7 +974,7 @@ Status ConfigPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
   auto action = request.find("action");
   if (action == request.end()) {
-    return Status(1, "Config plugins require an action");
+    return Status::failure("Config plugins require an action");
   }
 
   if (action->second == "genConfig") {

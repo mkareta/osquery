@@ -119,10 +119,8 @@ std::string getHostname() {
 
   std::vector<char> hostname(size, 0x0);
   std::string hostname_string;
-  if (hostname.data() != nullptr) {
-    gethostname(hostname.data(), size - 1);
-    hostname_string = std::string(hostname.data());
-  }
+  gethostname(hostname.data(), size - 1);
+  hostname_string = std::string(hostname.data());
   boost::algorithm::trim(hostname_string);
   return hostname_string;
 }
@@ -560,6 +558,31 @@ DropPrivileges::~DropPrivileges() {
   }
 }
 #endif
+
+Status setThreadName(const std::string& name) {
+  int return_code;
+#if defined(__APPLE__)
+  return_code = pthread_setname_np(name.c_str());
+#elif defined(__linux__)
+  return_code = pthread_setname_np(pthread_self(), name.c_str());
+#elif defined(WIN32)
+  // SetThreadDescription is available in builds newer than 1607 of windows 10
+  // and works even if there is no debugger.
+  typedef HRESULT(WINAPI * PFNSetThreadDescription)(HANDLE hThread,
+                                                    PCWSTR lpThreadDescription);
+  auto pfnSetThreadDescription = reinterpret_cast<PFNSetThreadDescription>(
+      GetProcAddress(GetModuleHandleA("Kernel32.dll"), "SetThreadDescription"));
+  if (pfnSetThreadDescription != nullptr) {
+    std::wstring wideName{stringToWstring(name)};
+    HRESULT hr = pfnSetThreadDescription(GetCurrentThread(), wideName.c_str());
+    if (!FAILED(hr)) {
+      return Status();
+    }
+  }
+  return Status(1);
+#endif
+  return Status(return_code == 0 ? 0 : 1);
+}
 
 bool checkPlatform(const std::string& platform) {
   if (platform.empty() || platform == "null") {

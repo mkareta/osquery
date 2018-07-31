@@ -43,6 +43,7 @@
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/numeric_monitoring/plugin_interface.h>
 #include <osquery/registry.h>
@@ -179,6 +180,7 @@ DECLARE_string(config_plugin);
 DECLARE_string(logger_plugin);
 DECLARE_string(numeric_monitoring_plugins);
 DECLARE_string(distributed_plugin);
+DECLARE_string(killswitch_plugin);
 DECLARE_bool(config_check);
 DECLARE_bool(config_dump);
 DECLARE_bool(database_dump);
@@ -187,6 +189,7 @@ DECLARE_bool(disable_distributed);
 DECLARE_bool(disable_database);
 DECLARE_bool(disable_events);
 DECLARE_bool(disable_logging);
+DECLARE_bool(enable_killswitch);
 DECLARE_bool(enable_numeric_monitoring);
 
 CLI_FLAG(bool, S, false, "Run as a shell process");
@@ -445,6 +448,7 @@ void Initializer::initDaemon() const {
   // Nice ourselves if using a watchdog and the level is not too permissive.
   if (!FLAGS_disable_watchdog && FLAGS_watchdog_level >= 0) {
     // Set CPU scheduling I/O limits.
+    // On windows these values are inherited so no further calls are needed.
     setToBackgroundPriority();
 
 #ifdef __linux__
@@ -684,6 +688,9 @@ void Initializer::start() const {
     initActivePlugin("distributed", FLAGS_distributed_plugin);
   }
 
+  if (FLAGS_enable_killswitch) {
+    initActivePlugin("killswitch", FLAGS_killswitch_plugin);
+  }
   if (FLAGS_enable_numeric_monitoring) {
     initActivePlugin(monitoring::registryName(),
                      FLAGS_numeric_monitoring_plugins);
