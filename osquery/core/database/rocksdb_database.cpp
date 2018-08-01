@@ -314,29 +314,10 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::putStringsUnsafe(const std::stri
   return handle.takeError();
 }
 
-//template <typename Func>
-//ExpectedSuccess<DatabaseError> RocksdbDatabase::enumarateDomain(const std::string& domain, Func function) {
-//  auto handle = getHandle(domain);
-//  if (handle) {
-//    std::shared_ptr<rocksdb::ColumnFamilyHandle> handle_ptr = handle.take();
-//    auto iter = std::unique_ptr<rocksdb::Iterator>(db_->NewIterator(default_read_options_, handle_ptr.get()));
-//
-//    for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-//      if (iter->status().ok()) {
-//        auto key = iter->key().ToString();
-//        auto value = iter->value().data();
-//        function(key, value);
-//      }
-//    }
-//    return Success();
-//  }
-//  return handle.takeError();
-//}
-
 Expected<std::vector<std::string>, DatabaseError> RocksdbDatabase::getKeys(const std::string& domain, const std::string& prefix) {
   auto handle = getHandle(domain);
   if (handle) {
-    std::shared_ptr<rocksdb::ColumnFamilyHandle> handle_ptr = handle.take();
+    ColumnFamilyHandleRef handle_ptr = handle.take();
     auto iter = std::unique_ptr<rocksdb::Iterator>(db_->NewIterator(default_read_options_, handle_ptr.get()));
 
     std::vector<std::string> result;

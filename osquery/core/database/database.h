@@ -14,6 +14,7 @@
 
 #include <osquery/error.h>
 #include <osquery/expected.h>
+#include <osquery/logger.h>
 
 namespace osquery {
 
@@ -30,8 +31,8 @@ enum class DatabaseError {
   DomainNotFound = 9,
   // Corruption or other unrecoverable error after DB can't be longer used
   // Database should be closed, destroyed and opened again
-  // If this error returing during data access then aplication,
-  // is likely to die soon after it
+  // If this error was received during data access, then aplication
+  // is likely to die soon
   // See message and/or underlying error for details
   Panic = 10,
 };
@@ -64,6 +65,7 @@ public:
   virtual ExpectedSuccess<DatabaseError> putStringsUnsafe(const std::string& domain, std::vector<std::pair<std::string, std::string>>& data) = 0;
   
   void panic(const Error<DatabaseError>& error) {
+    LOG(ERROR) << "Database did panic: " << error.getFullMessageRecursive();
     assert(false && error.getFullMessageRecursive().c_str());
   }
 };

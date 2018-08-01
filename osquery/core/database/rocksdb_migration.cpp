@@ -75,29 +75,31 @@ void RocksdbMigration::buildMigrationMap() {
   };
 }
 
-ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateFromVersion(int version) {
+ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateFromVersion(int original_version) {
   buildMigrationMap();
   std::string src_path = source_path_;
   std::string dst_path = randomOutputPath();
   bool drop_src_data = false;
-  for (int i = version; i < kDatabaseSchemaVersionCurrent;) {
-    auto iter = migration_map_.find(i);
+  for (int version = original_version; version < kDatabaseSchemaVersionCurrent;) {
+    auto iter = migration_map_.find(version);
     if (iter == migration_map_.end()) {
-      auto error = createError(RocksdbMigrationError::NoMigrationFromCurrentVersion, "version: ") << version;
-      return createError(RocksdbMigrationError::FailToMigrate, "", std::move(error));
+      auto error = createError(RocksdbMigrationError::NoMigrationFromCurrentVersion, "No migration logic from version: ") << version;
+      return createError(RocksdbMigrationError::FailToMigrate, "Failed to migrate database", std::move(error));
     }
+    VLOG(1) << "Migrating from version: " << version << ". Src path: " << src_path << ". Dst path: " << dst_path;
     auto migration_result = iter->second(src_path, dst_path);
     if (migration_result) {
       int new_version = migration_result.take();
       if (new_version <= version) {
-        auto error = createError(RocksdbMigrationError::MigrationLogicError, "Migrated from: ") << version << " To: " << new_version;
+        auto error = createError(RocksdbMigrationError::MigrationLogicError, "New version(") << version << ") is lower or same as old(" << new_version << ")";
         return createError(RocksdbMigrationError::FailToMigrate, "", std::move(error));
       }
       version = new_version;
     } else {
-      return createError(RocksdbMigrationError::FailToMigrate, "", migration_result.takeError());
+      return createError(RocksdbMigrationError::FailToMigrate, "Failed to migrate database", migration_result.takeError());
     }
     if (drop_src_data) {
+      VLOG(1) << "Destroying db at path: " << src_path;
       rocksdb::DestroyDB(src_path, rocksdb::Options());
     }
     drop_src_data = true;

@@ -47,7 +47,7 @@ private:
   DatabaseHandle output_db_;
 
   std::string source_path_;
-  std::unordered_map<int, std::function<Expecte<int, RocksdbMigrationError>(const std::string& src, const std::string& dst)>> migration_map_;
+  std::unordered_map<int, std::function<Expected <int, RocksdbMigrationError>(const std::string& src, const std::string& dst)>> migration_map_;
 private:
   Expected<DatabaseHandle, RocksdbMigrationError> openDatabase(const std::string& path, bool create_if_missing, bool error_if_exists);
   Expected<int, RocksdbMigrationError> getVersion(const DatabaseHandle& db);

@@ -64,6 +64,8 @@ public:
 
   Expected<std::vector<std::string>, DatabaseError> getKeys(const std::string& domain, const std::string& prefix = "") override;
 
+  // This method bypass type validation and will silently update value
+  // even if type was changed (e.g int->string)
   ExpectedSuccess<DatabaseError> putStringsUnsafe(const std::string& domain, std::vector<std::pair<std::string, std::string>>& data) override;
 private:
   template<typename T>
@@ -73,8 +75,13 @@ private:
 
   Error<DatabaseError> domainNotFoundError(const std::string& domain);
 private:
-  bool is_open_;
-  std::unordered_map<std::string, std::unique_ptr<InMemoryStorage<boost::variant<std::string, int32_t>>>> storage_;
+  bool is_open_ = false;
+
+  using DataType = boost::variant<std::string, int32_t>;
+  using InMemoryStorageRef = std::unique_ptr<InMemoryStorage<DataType>>;
+
+  // storage map is built on open, so no need to protect it with locks
+  std::unordered_map<std::string, InMemoryStorageRef> storage_;
 };
 
 }

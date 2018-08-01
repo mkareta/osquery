@@ -36,7 +36,6 @@ public:
 
   void close() override;
 
-  //Low level access
   Expected<int32_t, DatabaseError> getInt32(const std::string& domain, const std::string& key) override;
   Expected<std::string, DatabaseError> getString(const std::string& domain, const std::string& key) override;
 
@@ -49,15 +48,6 @@ public:
   // This write operation will not use neither sync or WAL, so date lose
   // may happen in case of failure, but opertaion itself is still atomic
   ExpectedSuccess<DatabaseError> putStringsUnsafe(const std::string& domain, std::vector<std::pair<std::string, std::string>>& data) override;
-public:
-//  // Raw bytes API, intented for usage during DB migration
-//
-//  // Function will be called with key/value pair, where value is raw bytes
-//  // caller should know how parse value
-//  // Func: void(const std::string& key, const char *data);
-//  template <typename Func>
-//  ExpectedSuccess<DatabaseError> enumarateDomain(const std::string& domain, Func function);
-
 private:
   rocksdb::Options getOptions();
   std::vector<rocksdb::ColumnFamilyDescriptor> createDefaultColumnFamilies(const rocksdb::Options& options);
@@ -76,7 +66,9 @@ private:
   rocksdb::WriteOptions default_write_options_;
   rocksdb::WriteOptions batch_write_options_;
   std::unique_ptr<rocksdb::DB> db_ = nullptr;
-  std::unordered_map<std::string, std::shared_ptr<rocksdb::ColumnFamilyHandle>> handles_map_;
+
+  using ColumnFamilyHandleRef = std::shared_ptr<rocksdb::ColumnFamilyHandle>;
+  std::unordered_map<std::string, ColumnFamilyHandleRef> handles_map_;
 };
 
 }

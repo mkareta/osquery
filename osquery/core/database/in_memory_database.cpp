@@ -30,7 +30,7 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::destroyDB(const std::string& _)
 ExpectedSuccess<DatabaseError> InMemoryDatabase::open(const std::string& _) {
   assert(is_open_ && "database is already open");
   for (const auto &domain : kDomains) {
-    storage_[domain] = std::make_unique<InMemoryStorage<boost::variant<std::string, int32_t>>>();
+    storage_[domain] = std::make_unique<InMemoryStorage<DataType>>();
   }
   is_open_ = true;
   return Success();
@@ -50,7 +50,7 @@ Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain,
   std::lock_guard<std::mutex> lock(storage_iter->second->getMutex());
   auto result = storage_iter->second->get(key);
   if (result) {
-    boost::variant<std::string, int32_t> value = result.take();
+    DataType value = result.take();
     if (value.type() == typeid(T)) {
       return boost::get<T>(value);
     } else {
@@ -118,6 +118,7 @@ ExpectedSuccess<DatabaseError> InMemoryDatabase::putStringsUnsafe(const std::str
   for (const auto& pair : data) {
     storage_iter->second->put(pair.first, pair.second);
   }
+  return Success();
 }
 
 }
