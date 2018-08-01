@@ -39,11 +39,15 @@ enum class DatabaseError {
 
 class Database {
 public:
-  explicit Database(std::string name) {};
+  explicit Database(std::string name): name_(std::move(name)) {};
   virtual ~Database() {};
 
-  virtual ExpectedSuccess<DatabaseError> open(const std::string& path) = 0;
-  virtual ExpectedSuccess<DatabaseError> destroyDB(const std::string& path) = 0;
+  const std::string& getName() const {
+    return name_;
+  }
+
+  virtual ExpectedSuccess<DatabaseError> open() = 0;
+  virtual ExpectedSuccess<DatabaseError> destroyDB() = 0;
   virtual void close() = 0;
 
   // Return default value in case of NotFound error
@@ -68,6 +72,8 @@ public:
     LOG(ERROR) << "Database did panic: " << error.getFullMessageRecursive();
     assert(false && error.getFullMessageRecursive().c_str());
   }
+private:
+  std::string name_;
 };
 
 }

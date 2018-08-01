@@ -28,11 +28,11 @@ enum class RocksdbError {
 
 class RocksdbDatabase final : public Database {
 public:
-  explicit RocksdbDatabase(std::string name) : Database(std::move(name)) {};
+  explicit RocksdbDatabase(std::string name, std::string path) : Database(std::move(name)), path_(std::move(path)) {};
   ~RocksdbDatabase() override {}
 
-  ExpectedSuccess<DatabaseError> destroyDB(const std::string& path) override;
-  ExpectedSuccess<DatabaseError> open(const std::string& path) override;
+  ExpectedSuccess<DatabaseError> destroyDB() override;
+  ExpectedSuccess<DatabaseError> open() override;
 
   void close() override;
 
@@ -66,6 +66,8 @@ private:
   rocksdb::WriteOptions default_write_options_;
   rocksdb::WriteOptions batch_write_options_;
   std::unique_ptr<rocksdb::DB> db_ = nullptr;
+
+  std::string path_;
 
   using ColumnFamilyHandleRef = std::shared_ptr<rocksdb::ColumnFamilyHandle>;
   std::unordered_map<std::string, ColumnFamilyHandleRef> handles_map_;

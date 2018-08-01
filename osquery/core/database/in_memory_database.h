@@ -50,8 +50,8 @@ public:
   explicit InMemoryDatabase(std::string name) : Database(std::move(name)) {};
   ~InMemoryDatabase() override {}
 
-  ExpectedSuccess<DatabaseError> destroyDB(const std::string& path) override;
-  ExpectedSuccess<DatabaseError> open(const std::string& path) override;
+  ExpectedSuccess<DatabaseError> destroyDB() override;
+  ExpectedSuccess<DatabaseError> open() override;
 
   void close() override;
 

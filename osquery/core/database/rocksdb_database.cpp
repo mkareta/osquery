@@ -104,8 +104,8 @@ void RocksdbDatabase::close() {
   }
 }
 
-ExpectedSuccess<DatabaseError> RocksdbDatabase::destroyDB(const std::string& path) {
-  VLOG(1) << "Destroying db at path " << path;
+ExpectedSuccess<DatabaseError> RocksdbDatabase::destroyDB() {
+  VLOG(1) << "Destroying db at path " << path_;
 
   assert(db_ == nullptr && "can't destroy db while it in use");
   if (db_ != nullptr) {
@@ -114,7 +114,7 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::destroyDB(const std::string& pat
   }
 
   rocksdb::Options options = getOptions();
-  auto db_path = boost::filesystem::path(path).make_preferred();
+  auto db_path = boost::filesystem::path(path_).make_preferred();
   auto destroy_status = rocksdb::DestroyDB(db_path.string(), options);
   if (!destroy_status.ok()) {
     return createError(DatabaseError::FailToDestroyDB,
@@ -158,9 +158,9 @@ ExpectedSuccess<DatabaseError> RocksdbDatabase::openInternal(const rocksdb::Opti
   return Success();
 }
 
-ExpectedSuccess<DatabaseError> RocksdbDatabase::open(const std::string& path) {
+ExpectedSuccess<DatabaseError> RocksdbDatabase::open() {
   rocksdb::Options options = getOptions();
-  auto db_path = boost::filesystem::path(path).make_preferred();
+  auto db_path = boost::filesystem::path(path_).make_preferred();
   default_read_options_ = rocksdb::ReadOptions();
   default_read_options_.verify_checksums = false;
   default_write_options_ = rocksdb::WriteOptions();

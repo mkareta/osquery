@@ -12,31 +12,16 @@
 #include <osquery/core/conversions.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 
 namespace osquery {
 
 ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateDatabase(const std::string& path) {
-
-//  auto column_families = createDefaultColumnFamilies(options);
-//  auto db_path = boost::filesystem::path(path).make_preferred();
-//  auto db_path_status = boost::filesystem::status(db_path);
-//  if (!boost::filesystem::exists(db_path_status)) {
-//    return createError(DatabaseError::DatabasePathDoesNotExists,
-//                       "database path doesn't exist");
-//  }
-//  std::vector<rocksdb::ColumnFamilyHandle*> raw_handles;
-//  rocksdb::DB* raw_db_handle = nullptr;
-//  auto open_status = rocksdb::DB::Open(options, db_path.string(), column_families, &raw_handles, &raw_db_handle);
-//  if (open_status.IsCorruption()) {
-//    auto corruptionError = createError(RocksdbError::DatabaseIsCorrupted, open_status.ToString());
-//    return createError(DatabaseError::Panic, "database is corrrupted", std::move(corruptionError));
-//  }
-//  if (!open_status.ok()) {
-//    return createError(DatabaseError::FailToOpenDatabase,
-//                       "Fail to open database: ") << open_status.ToString();
-//  }
-
-  return Success();
+  auto migration = std::make_unique<RocksdbMigration>(path);
+  return migration->migrateIfNeeded();
 }
 
 RocksdbMigration::RocksdbMigration(const std::string& path) {
@@ -165,6 +150,12 @@ Expected<int, RocksdbMigrationError> RocksdbMigration::getVersion(const Database
   return createError(RocksdbMigrationError::FailToGetVersion, "Verion data is not found");
 }
 
-
+std::string RocksdbMigration::randomOutputPath() {
+  auto path = boost::filesystem::path(OSQUERY_HOME);
+  boost::uuids::uuid uuid = boost::uuids::random_generator()();
+  path.append("migration");
+  path.append(boost::uuids::to_string(uuid));
+  return path.string();
+}
 
 }

@@ -35,7 +35,8 @@ enum class RocksdbMigrationError {
 class RocksdbMigration final {
 public:
   static ExpectedSuccess<RocksdbMigrationError> migrateDatabase(const std::string& path);
-
+  RocksdbMigration(const std::string& path);
+  
 private:
   struct DatabaseHandle {
     std::unique_ptr<rocksdb::DB> handle = nullptr;
@@ -58,8 +59,6 @@ private:
   std::string randomOutputPath();
 
   ExpectedSuccess<RocksdbMigrationError> migrateIfNeeded();
-
-  RocksdbMigration(const std::string& path);
 };
 
 }

@@ -18,16 +18,16 @@ void InMemoryDatabase::close() {
   VLOG(1) << "Closing db... ";
   assert(!is_open_ && "database is not open");
   is_open_ = false;
-  destroyDB("");
+  destroyDB();
 }
 
-ExpectedSuccess<DatabaseError> InMemoryDatabase::destroyDB(const std::string& _) {
+ExpectedSuccess<DatabaseError> InMemoryDatabase::destroyDB() {
   VLOG(1) << "Destroying in memory db";
   storage_.clear();
   return Success();
 }
 
-ExpectedSuccess<DatabaseError> InMemoryDatabase::open(const std::string& _) {
+ExpectedSuccess<DatabaseError> InMemoryDatabase::open() {
   assert(is_open_ && "database is already open");
   for (const auto &domain : kDomains) {
     storage_[domain] = std::make_unique<InMemoryStorage<DataType>>();
@@ -43,6 +43,9 @@ Error<DatabaseError> InMemoryDatabase::domainNotFoundError(const std::string& do
 template<typename T>
 Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain, const std::string& key) {
   assert(is_open_ && "database is not open");
+  if (!is_open_) {
+    return createError(DatabaseError::DatabaseIsNotOpen, "Database is closed");
+  }
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {
     return domainNotFoundError(domain);
@@ -68,6 +71,9 @@ Expected<T, DatabaseError> InMemoryDatabase::getValue(const std::string& domain,
 template<typename T>
 ExpectedSuccess<DatabaseError> InMemoryDatabase::putValue(const std::string& domain, const std::string& key, const T& value) {
   assert(is_open_ && "database is not open");
+  if (!is_open_) {
+    return createError(DatabaseError::DatabaseIsNotOpen, "Database is closed");
+  }
   auto storage_iter = storage_.find(domain);
   if (storage_iter == storage_.end()) {
     return domainNotFoundError(domain);
