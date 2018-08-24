@@ -19,13 +19,15 @@
 
 namespace osquery {
 
+namespace fs = boost::filesystem;
+
 ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateDatabase(const std::string& path) {
   auto migration = std::make_unique<RocksdbMigration>(path);
   return migration->migrateIfNeeded();
 }
 
 RocksdbMigration::RocksdbMigration(const std::string& path) {
-  auto boost_path = boost::filesystem::path(path).make_preferred();
+  auto boost_path = fs::path(path).make_preferred();
   source_path_ = boost_path.string();
 }
 
@@ -169,8 +171,16 @@ ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateFromVersion(int 
 }
 
 ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::moveDb(const std::string& src_path, const std::string& dst_path) {
-  return Success();
-//  boost::filesystem::rename(source_path_, randomOutputPath());
+  if (BOOST_UNLIKELY(fs::exists(fs::path(dst_path)))) {
+    return createError(RocksdbMigrationError::FailMoveDatabase, "Database at dst path already exists: ") << dst_path;
+  }
+  boost::system::error_code ec;
+  fs::rename(src_path, dst_path, ec);
+  if (ec.value() == boost::system::errc::success) {
+    return Success();
+  } else {
+    return createError(RocksdbMigrationError::FailMoveDatabase, "Move failed: ") << ec.value() << " " << ec.message();
+  }
 }
   
 Expected<RocksdbMigration::DatabaseHandle, RocksdbMigrationError> RocksdbMigration::openDatabase(const std::string& path, bool create_if_missing, bool error_if_exists) {
@@ -232,7 +242,7 @@ Expected<int, RocksdbMigrationError> RocksdbMigration::getVersion(const Database
 }
 
 std::string RocksdbMigration::randomOutputPath() {
-  auto path = boost::filesystem::path(OSQUERY_HOME);
+  auto path = fs::path(OSQUERY_HOME);
   boost::uuids::uuid uuid = boost::uuids::random_generator()();
   path.append("migration");
   path.append(boost::uuids::to_string(uuid));

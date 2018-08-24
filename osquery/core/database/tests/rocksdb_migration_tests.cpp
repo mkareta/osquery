@@ -48,13 +48,17 @@ std::string randomDBPath() {
 TEST_F(RocksdbDatabaseTest, test_v2_v3_migraion) {
   auto path = randomDBPath();
   auto db = std::make_unique<RocksdbDatabase>("test", path_);
-  auto result = db->open();
-  ASSERT_TRUE(result);
+  ASSERT_TRUE(db->open());
+  // In version 2 domains are shifted so version is stored in default
+  // instead of configurations
+  // ASSERT_TRUE(db->putString("configurations", "results_version", "2"))
+  ASSERT_TRUE(db->putString("default", "results_version", "2"));
   ASSERT_TRUE(db->putString("default", "key1", "configurations1"));
   ASSERT_TRUE(db->putString("default", "key2", "configurations2"));
   ASSERT_TRUE(db->putString("queries", "key1", "logs1"));
   ASSERT_TRUE(db->putString("queries", "key2", "logs2"));
   ASSERT_TRUE(db->putString("queries", "key3", "logs3"));
+
   db->close();
   RocksdbMigration::migrateDatabase(path_);
 }
