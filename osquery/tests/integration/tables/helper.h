@@ -61,6 +61,7 @@ protected:
     Bool = 1 << 11,
 
     NonNegativeInt = IntType | NonEmpty | NonNull | NonNegative,
+    NonEmptyString = NonEmpty | NormalType | NonNull,
   };
 
   using ValidatatioDataType = boost::variant<int, std::shared_ptr<DataCheck>>;
