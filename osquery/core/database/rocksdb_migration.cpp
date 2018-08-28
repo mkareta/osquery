@@ -67,7 +67,72 @@ ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::dropDbMigration(
 }
 
 void RocksdbMigration::buildMigrationMap() {
-  // No migration map at this stage, will be added as separate commit
+  migration_map_[kDatabaseSchemaV1] =
+      [](const std::string& src,
+         const std::string& dst) -> Expected<int, RocksdbMigrationError> {
+    auto result = dropDbMigration(src, dst);
+    if (result) {
+      return kDatabaseSchemaVersionCurrent;
+    }
+    return result.takeError();
+  };
+  migration_map_[kDatabaseSchemaV2] =
+      [](const std::string& src,
+         const std::string& dst) -> Expected<int, RocksdbMigrationError> {
+    auto src_db = openDatabase(src, false, false);
+    if (!src_db) {
+      return createError(RocksdbMigrationError::FailToMigrate,
+                         "Fail to migrate from :",
+                         src_db.takeError())
+             << kDatabaseSchemaV2;
+    }
+    auto dst_db = openDatabase(dst, true, true);
+    if (!dst_db) {
+      return createError(RocksdbMigrationError::FailToMigrate,
+                         "Fail to migrate from :",
+                         dst_db.takeError())
+             << kDatabaseSchemaV2;
+    }
+    // In v2 schema we were storing data in wrong domains
+    // This migration fixes this
+    std::unordered_map<std::string, std::string> migration_map;
+    migration_map["default"] = "configurations";
+    migration_map["configurations"] = "queries";
+    migration_map["queries"] = "events";
+    migration_map["events"] = "logs";
+    migration_map["logs"] = "carves";
+
+    rocksdb::ReadOptions read_options = rocksdb::ReadOptions();
+    rocksdb::WriteOptions write_options = rocksdb::WriteOptions();
+    write_options.sync = false;
+    write_options.disableWAL = true;
+
+    for (auto iter : migration_map) {
+      auto src_handle_iter = src_db->handles.find(iter.first);
+      auto dst_handle_iter = dst_db->handles.find(iter.second);
+      if (src_handle_iter == src_db->handles.end() ||
+          dst_handle_iter == dst_db->handles.end()) {
+        return createError(RocksdbMigrationError::FailToMigrate,
+                           "Can't find src/dst pair: ")
+               << iter.first << " -> " << iter.second;
+      }
+      rocksdb::Iterator* src_data_iter =
+          src_db->db_handle->NewIterator(read_options);
+      for (src_data_iter->SeekToFirst(); src_data_iter->Valid();
+           src_data_iter->Next()) {
+        auto status = dst_db->db_handle->Put(write_options,
+                                             dst_handle_iter->second.get(),
+                                             src_data_iter->key(),
+                                             src_data_iter->value());
+        if (!status.ok()) {
+          return createError(RocksdbMigrationError::FailToMigrate,
+                             status.ToString());
+        }
+      }
+    }
+
+    return kDatabaseSchemaV3;
+  };
 }
 
 ExpectedSuccess<RocksdbMigrationError> RocksdbMigration::migrateFromVersion(
